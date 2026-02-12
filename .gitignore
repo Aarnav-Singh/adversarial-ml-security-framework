@@ -1,0 +1,33 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+ps1/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Model weights and artifacts
+models/*.pkl
+models/*.pth
+models/*.h5
+shap_summary.png
+
+# Streamlit config (if local)
+.streamlit/
+
+# Distribution files
+dist/
+build/
+*.egg-info/
+
+# Secret files
+.env
+*.log
