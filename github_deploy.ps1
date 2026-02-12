@@ -1,7 +1,7 @@
 # ZT-Shield GitHub Deployment Script
 # This script initializes a git repository (if needed) and pushes the project to GitHub.
 
-$projectName = "ZT-Shield-Research"
+$projectName = "adversarial-ml-security-framework"
 
 Write-Host "--- ZT-Shield GitHub Deployment Automation ---" -ForegroundColor Cyan
 
