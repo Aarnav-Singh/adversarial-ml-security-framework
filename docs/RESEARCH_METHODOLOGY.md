@@ -43,7 +43,7 @@ This document describes the research methodology, experimental design, evaluatio
 
 **Neural Network Classifier:**
 
-```
+```text
 Input Layer: 41 features
 Hidden Layer 1: 128 neurons + ReLU + Dropout(0.3)
 Hidden Layer 2: 64 neurons + ReLU + Dropout(0.3)
@@ -106,7 +106,7 @@ for i in range(num_iter):
 
 **Accuracy:**
 
-```
+```text
 Accuracy = (TP + TN) / (TP + TN + FP + FN)
 ```
 
@@ -114,7 +114,7 @@ Accuracy = (TP + TN) / (TP + TN + FP + FN)
 
 **Precision:**
 
-```
+```text
 Precision = TP / (TP + FP)
 ```
 
@@ -122,7 +122,7 @@ Precision = TP / (TP + FP)
 
 **Recall:**
 
-```
+```text
 Recall = TP / (TP + FN)
 ```
 
@@ -130,7 +130,7 @@ Recall = TP / (TP + FN)
 
 **F1 Score:**
 
-```
+```text
 F1 = 2 * (Precision * Recall) / (Precision + Recall)
 ```
 
@@ -140,7 +140,7 @@ F1 = 2 * (Precision * Recall) / (Precision + Recall)
 
 **Evasion Success Rate (ESR):**
 
-```
+```text
 ESR = # adversarial samples classified as benign / # total adversarial samples
 ```
 
@@ -148,7 +148,7 @@ ESR = # adversarial samples classified as benign / # total adversarial samples
 
 **Robust Accuracy:**
 
-```
+```text
 Robust Accuracy = # correctly classified adversarial samples / # total samples
 ```
 
@@ -167,7 +167,7 @@ Robust Accuracy = # correctly classified adversarial samples / # total samples
 
 **Clean Deny Rate:**
 
-```
+```text
 Clean Deny Rate = # malicious flows denied / # total malicious flows
 ```
 
@@ -175,7 +175,7 @@ Clean Deny Rate = # malicious flows denied / # total malicious flows
 
 **Adversarial Deny Rate:**
 
-```
+```text
 Adv Deny Rate = # adversarial flows denied / # total adversarial flows
 ```
 
@@ -183,7 +183,7 @@ Adv Deny Rate = # adversarial flows denied / # total adversarial flows
 
 **Policy Bypass Rate:**
 
-```
+```text
 Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 ```
 
@@ -196,7 +196,7 @@ Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 ### Baseline Model Performance
 
 | Metric | Value | Interpretation |
-|--------|-------|----------------|
+| :--- | :--- | :--- |
 | Accuracy | 78.5% | Good overall performance |
 | Precision | 97.2% | Very few false positives |
 | Recall | 64.1% | Misses 36% of attacks |
@@ -207,7 +207,7 @@ Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 ### Adversarial Attack Results
 
 | Attack | Epsilon | ESR | Robust Acc | Avg L2 | Avg L∞ |
-|--------|---------|-----|------------|--------|--------|
+| :--- | :--- | :--- | :--- | :--- | :--- |
 | FGSM | 0.05 | 20% | 80% | 0.15 | 0.05 |
 | PGD | 0.05 | 25% | 75% | 0.18 | 0.05 |
 
@@ -216,9 +216,9 @@ Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 ### Zero-Trust Policy Results
 
 | Scenario | FPR | Recall | ROC AUC | Policy Bypass |
-|----------|-----|--------|---------|---------------|
-| Baseline | 2.8%| 64.1% | 0.96    | 80%           |
-| Fortified| 2.8%| 82.3% | 0.88*   | 0%            |
+| :--- | :--- | :--- | :--- | :--- |
+| Baseline | 2.8% | 64.1% | 0.96 | 80% |
+| Fortified | 2.8% | 82.3% | 0.88* | 0% |
 
 *\*Adversarial AUC after logic-driven mitigation layer.*
 
@@ -227,7 +227,7 @@ Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 ### Decision Distribution
 
 | Decision | Count | Percentage |
-|----------|-------|------------|
+| :--- | :--- | :--- |
 | ALLOW | 7 | 23.3% |
 | DENY | 22 | 73.3% |
 | STEP_UP_AUTH | 1 | 3.3% |
@@ -291,7 +291,7 @@ d = (0.80 - 0.20) / 0.15 = 4.0
 ### Baseline Intrusion Detection
 
 | Study | Dataset | Model | Accuracy |
-|-------|---------|-------|----------|
+| :--- | :--- | :--- | :--- |
 | This Work | NSL-KDD | Neural Net | 78.5% |
 | Tavallaee et al. (2009) | NSL-KDD | SVM | 81.0% |
 | Ingre & Yadav (2015) | NSL-KDD | Random Forest | 81.5% |
@@ -301,7 +301,7 @@ d = (0.80 - 0.20) / 0.15 = 4.0
 ### Adversarial Robustness
 
 | Study | Attack | Defense | ESR |
-|-------|--------|---------|-----|
+| :--- | :--- | :--- | :--- |
 | This Work | FGSM | Zero-Trust | 20% |
 | Madry et al. (2018) | PGD | Adv Training | 45% |
 | Zhang et al. (2019) | C&W | TRADES | 30% |

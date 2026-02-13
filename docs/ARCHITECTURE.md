@@ -147,7 +147,7 @@ Layer 4: Linear(32 → 1) + Sigmoid
 **Policy Rules:**
 
 | Priority | Condition | Decision | Reason |
-|----------|-----------|----------|--------|
+| :--- | :--- | :--- | :--- |
 | 0 | ML Risk > Resource Threshold | DENY | Micro-segmentation breach |
 | 1 | Global ML Risk > 0.8 | DENY | High risk score |
 | 2 | Device Trust < 0.5 AND ML Risk > 0.4 | DENY | Untrusted device + risk |
