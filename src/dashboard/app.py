@@ -742,6 +742,7 @@ with tab_zt:
         from src.system.zero_trust_network import ZeroTrustNetworkSystem
         from src.data.network_loader import NetworkDataLoader
         from src.attacks.network_adversarial import NetworkAdversarialAttacker
+        from src.evaluation.network_metrics import plot_confusion_matrix, plot_roc_curve
         import torch
     except ImportError as e:
         st.error(f"Failed to import Zero-Trust components: {e}")
@@ -849,6 +850,7 @@ with tab_zt:
                         <p>ML Risk: {latest['ml_risk_score']:.3f}</p>
                         <p>User: {latest['context'].user_identity}</p>
                         <p>Device Trust: {latest['context'].device_trust_score:.2f}</p>
+                        <p style="font-size: 0.8em; color: #888;">Posture: Compliance={latest['context'].device_posture['patch_compliance']:.1%}, Anomaly={latest['context'].device_posture['anomaly_score']:.2f}</p>
                     </div>
                     """, unsafe_allow_html=True)
                 elif decision == "DENY":
@@ -921,23 +923,47 @@ with tab_zt:
                     flow_indices=range(len(X_malicious))
                 )
                 
+                # Run full metrics suite for detailed visuals
+                attacker = NetworkAdversarialAttacker(zt_system.risk_model, bounds, loader.feature_names)
+                full_metrics = attacker.evaluate_attack(X_malicious, epsilon=attack_epsilon)
+                
                 # Display results
                 st.success("✅ Adversarial attack simulation complete!")
                 
-                col_ev1, col_ev2, col_ev3 = st.columns(3)
+                col_ev1, col_ev2, col_ev3, col_ev4 = st.columns(4)
                 col_ev1.metric("Evasion Success Rate", f"{evasion_results['evasion_success_rate']:.1%}")
                 col_ev2.metric("Clean Deny Rate", f"{evasion_results['clean_deny_rate']:.1%}")
-                col_ev3.metric("Adv Allow Rate", f"{evasion_results['adv_allow_rate']:.1%}")
+                col_ev3.metric("Adv AUC", f"{full_metrics['adv_metrics']['roc_auc']:.3f}", 
+                               delta=f"{full_metrics['adv_metrics']['roc_auc'] - full_metrics['clean_metrics']['roc_auc']:.2f}",
+                               delta_color="inverse")
+                col_ev4.metric("False Negative Rate (FNR)", f"{full_metrics['adv_metrics']['false_negative_rate']:.1%}")
+
+                # Visualization Row
+                col_plot1, col_plot2 = st.columns(2)
+                
+                with col_plot1:
+                    st.markdown("#### Detection Confusion Matrix (Adversarial)")
+                    fig_cm = plot_confusion_matrix(full_metrics['adv_metrics']['confusion_matrix'])
+                    st.pyplot(fig_cm)
+                    
+                with col_plot2:
+                    st.markdown("#### ROC Curve Degradation")
+                    fig_roc = plot_roc_curve(
+                        full_metrics['adv_metrics']['fpr_list'], 
+                        full_metrics['adv_metrics']['tpr_list'],
+                        full_metrics['adv_metrics']['roc_auc']
+                    )
+                    st.pyplot(fig_roc)
                 
                 # Risk score comparison
                 st.markdown("### 📈 Risk Score Analysis")
                 fig_risk = go.Figure()
-                fig_risk.add_trace(go.Box(y=[r['ml_risk_score'] for r in evasion_results['detailed_results']['clean']], 
-                                         name="Clean", marker_color='#FF4B4B'))
-                fig_risk.add_trace(go.Box(y=[r['ml_risk_score'] for r in evasion_results['detailed_results']['adversarial']], 
-                                         name="Adversarial", marker_color='#FFA500'))
+                fig_risk.add_trace(go.Box(y=full_metrics['clean_scores'], 
+                                         name="Clean Malicious", marker_color='#FF4B4B'))
+                fig_risk.add_trace(go.Box(y=full_metrics['adv_scores'], 
+                                         name="Adversarial Malicious", marker_color='#FFA500'))
                 fig_risk.update_layout(
-                    title="ML Risk Score Distribution: Clean vs Adversarial",
+                    title="ML Risk Score Distribution: Clean vs Adversarial (Domain-Constrained)",
                     yaxis_title="Risk Score",
                     paper_bgcolor="#0E1117",
                     plot_bgcolor="#0E1117",
@@ -946,10 +972,10 @@ with tab_zt:
                 st.plotly_chart(fig_risk, use_container_width=True)
                 
                 # Key insight
-                if evasion_results['evasion_success_rate'] < 0.5:
-                    st.success(f"✅ Zero-Trust policies successfully blocked {(1-evasion_results['evasion_success_rate'])*100:.0f}% of adversarial attacks!")
+                if evasion_results['evasion_success_rate'] < 0.4:
+                    st.success(f"✅ Zero-Trust Defense Robustness: Successfully blocked {(1-evasion_results['evasion_success_rate'])*100:.0f}% of DOMAIN-CONSTRAINED adversarial attacks!")
                 else:
-                    st.warning(f"⚠️ {evasion_results['evasion_success_rate']*100:.0f}% of adversarial attacks evaded detection. Consider tightening policies.")
+                    st.warning(f"⚠️ High Evasion Detected: {evasion_results['evasion_success_rate']*100:.0f}% of adversarial samples bypassed the current policy configuration.")
         
         # Telemetry section
         st.markdown("---")

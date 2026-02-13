@@ -13,6 +13,7 @@ class TestZeroTrustPolicyEngine(unittest.TestCase):
             flow_id="test_flow",
             user_identity="test_user",
             device_trust_score=0.9,
+            device_posture={'patch_compliance': 1.0, 'anomaly_score': 0.0},
             geo_risk_score=0.1,
             time_of_day_risk=0.1,
             source_ip="1.1.1.1",
@@ -31,7 +32,8 @@ class TestZeroTrustPolicyEngine(unittest.TestCase):
         """Test DENY due to high ML risk"""
         decision, reason = self.engine.evaluate_access(ml_risk_score=0.9, context=self.context)
         self.assertEqual(decision, AccessDecision.DENY)
-        self.assertIn("ML risk score too high", reason)
+        # Sensitive resource check happens first
+        self.assertIn("exceeds threshold for sensitive resource 'web'", reason)
 
     def test_low_device_trust_mfa(self):
         """Test STEP_UP_AUTH due to low device trust"""
@@ -54,12 +56,12 @@ class TestZeroTrustPolicyEngine(unittest.TestCase):
         self.assertEqual(decision, AccessDecision.STEP_UP_AUTH)
         self.assertIn("High geo risk", reason)
 
-    def test_sensitive_segment_mfa(self):
-        """Test STEP_UP_AUTH for sensitive segment"""
-        self.context.requested_segment = "admin"
-        decision, reason = self.engine.evaluate_access(ml_risk_score=0.65, context=self.context)
-        self.assertEqual(decision, AccessDecision.STEP_UP_AUTH)
-        self.assertIn("Sensitive segment access requires verification", reason)
+    def test_sensitive_segment_deny_on_low_risk(self):
+        """Test micro-segmentation DENY if ML risk exceeds segment-specific threshold"""
+        self.context.requested_segment = "admin" # threshold 0.4
+        decision, reason = self.engine.evaluate_access(ml_risk_score=0.45, context=self.context)
+        self.assertEqual(decision, AccessDecision.DENY)
+        self.assertIn("exceeds threshold for sensitive resource 'admin'", reason)
 
     def test_rate_limit(self):
         """Test RATE_LIMIT for moderate ML risk"""

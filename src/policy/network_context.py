@@ -9,12 +9,15 @@ from typing import Optional
 import hashlib
 
 
+from src.policy.trust_model import compute_device_trust, TrustScoreGenerator
+
 @dataclass
 class NetworkRequestContext:
     """Zero-Trust context for each network flow"""
     flow_id: str
     user_identity: str
     device_trust_score: float  # 0-1
+    device_posture: dict       # Raw posture data
     geo_risk_score: float      # 0-1  
     time_of_day_risk: float    # 0-1
     source_ip: str
@@ -28,29 +31,20 @@ class NetworkContextBuilder:
     
     def __init__(self, seed=42):
         self.rng = np.random.RandomState(seed)
+        self.trust_gen = TrustScoreGenerator(seed=seed)
         
     def build_context(self, flow_features, flow_index):
         """
         Simulate Zero-Trust metadata for a network flow
         
-        In real systems, this would come from:
-        - Identity Provider (Okta, Azure AD)
-        - Device Management (Intune, Jamf)
-        - Threat Intelligence feeds
-        - Geo-IP databases
-        
-        Args:
-            flow_features: Network flow feature vector
-            flow_index: Index of the flow (for deterministic generation)
-            
-        Returns:
-            NetworkRequestContext object
+        Sourcing from trust_model.py logic for realistic security posture.
         """
         # Generate deterministic user ID from flow
         user_id = f"user_{hashlib.md5(str(flow_index).encode()).hexdigest()[:8]}"
         
-        # Simulate device trust (lower for suspicious flows)
-        device_trust = self.rng.uniform(0.4, 0.95)
+        # Simulate realistic device posture and compute logic-driven trust
+        posture = self.trust_gen.generate_random_posture()
+        device_trust = compute_device_trust(**posture)
         
         # Simulate geo-risk (some IPs from risky regions)
         geo_risk = self.rng.choice([0.1, 0.3, 0.7], p=[0.7, 0.2, 0.1])
@@ -70,6 +64,7 @@ class NetworkContextBuilder:
             flow_id=f"flow_{flow_index}",
             user_identity=user_id,
             device_trust_score=device_trust,
+            device_posture=posture,
             geo_risk_score=geo_risk,
             time_of_day_risk=time_risk,
             source_ip=src_ip,

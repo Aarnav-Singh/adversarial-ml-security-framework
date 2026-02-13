@@ -17,6 +17,16 @@ class AccessDecision(Enum):
     ISOLATE = "ISOLATE"  # Quarantine to isolated network segment
 
 
+# Resource-specific risk thresholds (Micro-segmentation modeling)
+# Different resources require different security postures
+RESOURCE_RISK_THRESHOLDS = {
+    "web": 0.8,
+    "internal": 0.7,
+    "api": 0.6,
+    "database": 0.5,
+    "admin": 0.4
+}
+
 class ZeroTrustPolicyEngine:
     """
     Zero-Trust policy enforcement engine
@@ -26,6 +36,7 @@ class ZeroTrustPolicyEngine:
     - User trust
     - Device posture
     - Contextual factors
+    - Resource sensitivity (Micro-segmentation)
     """
     
     def __init__(self, config=None):
@@ -37,10 +48,11 @@ class ZeroTrustPolicyEngine:
             'geo_risk_maximum': 0.7,
             'high_privilege_segments': ['admin', 'database']
         }
+        self.resource_thresholds = RESOURCE_RISK_THRESHOLDS
         
     def evaluate_access(self, ml_risk_score, context) -> Tuple[AccessDecision, str]:
         """
-        Core Zero-Trust logic
+        Core Zero-Trust logic with Resource-Aware Micro-Segmentation
         
         Args:
             ml_risk_score: Risk score from ML model (0-1)
@@ -49,9 +61,16 @@ class ZeroTrustPolicyEngine:
         Returns:
             (decision, reason) tuple
         """
-        # Rule 1: High ML risk → DENY
+        # Rule 0: Resource-specific risk threshold (Micro-segmentation)
+        resource = context.requested_segment
+        resource_threshold = self.resource_thresholds.get(resource, self.config['ml_risk_deny_threshold'])
+        
+        if ml_risk_score > resource_threshold:
+            return AccessDecision.DENY, f"ML risk ({ml_risk_score:.3f}) exceeds threshold for sensitive resource '{resource}' ({resource_threshold})"
+        
+        # Rule 1: Global High ML risk → DENY
         if ml_risk_score > self.config['ml_risk_deny_threshold']:
-            return AccessDecision.DENY, f"ML risk score too high: {ml_risk_score:.3f}"
+            return AccessDecision.DENY, f"Global ML risk score too high: {ml_risk_score:.3f}"
         
         # Rule 2: Low device trust → DENY or MFA
         if context.device_trust_score < self.config['device_trust_minimum']:

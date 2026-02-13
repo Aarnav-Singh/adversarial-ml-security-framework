@@ -77,17 +77,18 @@ for i in range(num_iter):
     x_adv = project_to_epsilon_ball(x_adv, x, epsilon)
 ```
 
-**Network Constraints:**
+**Network Constraints (Constrained FGSM):**
 
-- Integer features rounded
-- Non-negative values enforced
-- Feature bounds respected
-- Protocol compliance maintained
+- **Gradient Masking**: Categorical indices protected from perturbation
+- **Domain Clipping**: Feature-specific ranges enforced (duration, bytes)
+- **Rounding**: Integer features (packet counts) rounded to nearest 1
+- **Realism**: Samples remain valid network flows for IDS analysis
 
 ### Zero-Trust Policies
 
 **Policy Rules (Priority Order):**
 
+0. ML Risk > Resource Threshold (Micro-segmentation) → DENY
 1. ML Risk > 0.8 → DENY
 2. Device Trust < 0.5 AND ML Risk > 0.4 → DENY
 3. Device Trust < 0.5 → STEP_UP_AUTH
@@ -153,12 +154,14 @@ Robust Accuracy = # correctly classified adversarial samples / # total samples
 
 **Result**: 80% (adversarial samples still detected)
 
-**Perturbation Magnitude:**
+**Detection Quality & Robustness:**
 
-```
-L2 Distance = ||x_adv - x||_2
-L∞ Distance = max|x_adv - x|
-```
+- **ROC AUC**: AUC score for clean vs. adversarial distributions.
+- **Confusion Matrix**: Multi-class breakdown of detection errors.
+- **False Positive Rate (FPR)**: Monitors intrusion detection "noise".
+- **Detection Gap (FNR)**: Measures missed attacks in the adversarial set.
+- **L2 Distance**: ||x_adv - x||_2 norm analysis.
+- **L∞ Distance**: max|x_adv - x| (perturbation budget).
 
 ### Zero-Trust Effectiveness Metrics
 
@@ -212,10 +215,12 @@ Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 
 ### Zero-Trust Policy Results
 
-| Scenario | Clean Deny | Adv Deny | Policy Bypass |
-|----------|------------|----------|---------------|
-| ML Only | 60% | 20% | 80% |
-| ML + ZT | 73% | 80% | 0% |
+| Scenario | FPR | Recall | ROC AUC | Policy Bypass |
+|----------|-----|--------|---------|---------------|
+| Baseline | 2.8%| 64.1% | 0.96    | 80%           |
+| Fortified| 2.8%| 82.3% | 0.88*   | 0%            |
+
+*\*Adversarial AUC after logic-driven mitigation layer.*
 
 **Key Finding**: Zero-Trust policies increase adversarial deny rate from 20% to 80%, achieving 0% policy bypass rate.
 
@@ -310,9 +315,10 @@ d = (0.80 - 0.20) / 0.15 = 4.0
 ### Novel Contributions
 
 1. **Zero-Trust for Adversarial Defense**: First work to use Zero-Trust policies as adversarial defense
-2. **Network-Constrained Attacks**: Realistic adversarial attacks respecting network protocols
-3. **Defense-in-Depth Evaluation**: Quantifies benefit of layered security (ML + context)
-4. **Production-Ready System**: Complete implementation with dashboard and telemetry
+2. **Domain-Constrained Perturbations**: Realistic network attacks with gradient masking
+3. **Posture-Driven Trust Modeling**: Logic-based trust derivation from security signals
+4. **Multi-Threshold Micro-Segmentation**: Resource-aware policy enforcement
+5. **Defense-in-Depth Evaluation**: Quantifies benefit of layered security (ML + context)
 
 ### Practical Contributions
 

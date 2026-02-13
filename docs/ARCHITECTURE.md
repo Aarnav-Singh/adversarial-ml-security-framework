@@ -33,20 +33,21 @@ This document describes the complete architecture of the Zero-Trust Network Adve
          │
          ▼
 ┌──────────────────────────────┐
-│ Context Enrichment           │ ← Zero-Trust Metadata:
-│  - User identity             │   - Identity Provider
-│  - Device trust (0-1)        │   - Device Management
-│  - Geo risk (0-1)            │   - Threat Intelligence
-│  - Time-of-day risk          │   - Geo-IP Database
-│  - Requested segment         │
+│ Context Enrichment           │ ← Logic-Driven Trust (Posture):
+│  - User identity             │   - Patch compliance (0-1)
+│  - Device trust (0-1)        │   - Behavioral anomaly (0-1)
+│  - Geo risk (0-1)            │   - Verification age (days)
+│  - Time-of-day risk          │   - Resource-level sensitivity
+│  - Requested segment         │     (Micro-segmentation)
 └────────┬─────────────────────┘
          │
          ▼
 ┌──────────────────────────────────────┐
-│ Zero-Trust Policy Engine             │ ← Multi-Factor Rules:
+│ Zero-Trust Policy Engine             │ ← Multi-Factor & Segment Rules:
 │                                      │
 │  Rules:                              │
-│  • ML risk > 0.8 → DENY              │
+│  • Resource ML Threshold → DENY      │ (Micro-segmentation Rule 0)
+│  • Global ML risk > 0.8 → DENY       │
 │  • Device trust < 0.5 → MFA/DENY     │
 │  • Geo risk > 0.7 → MFA              │
 │  • Admin segment → strict checks     │
@@ -127,17 +128,17 @@ Layer 4: Linear(32 → 1) + Sigmoid
 **Context Fields:**
 
 - `user_identity`: Simulated user ID
-- `device_trust_score`: 0-1 (device health)
+- `device_trust_score`: 0-1 (Derives from posture logic)
+- `device_posture`: Raw telemetry (Compliance, Anomaly, Age)
 - `geo_risk_score`: 0-1 (geographic risk)
 - `time_of_day_risk`: 0-1 (temporal risk)
-- `requested_segment`: Target resource
+- `requested_segment`: Resource level (e.g., 'db', 'web')
 
-**Real-World Sources:**
+**Trust Sources (Simulated Logic):**
 
-- Identity: Okta, Azure AD
-- Device: Intune, Jamf
-- Geo: MaxMind, IP2Location
-- Threat Intel: VirusTotal, AlienVault
+- **Patch Compliance**: weighted 40%
+- **Behavioral Anomaly**: weighted 40% (Inverse: 1.0 - score)
+- **Verification Age**: weighted 20% (Linear decay over 365 days)
 
 ### 4. Zero-Trust Policy Engine
 
@@ -147,7 +148,8 @@ Layer 4: Linear(32 → 1) + Sigmoid
 
 | Priority | Condition | Decision | Reason |
 |----------|-----------|----------|--------|
-| 1 | ML Risk > 0.8 | DENY | High risk score |
+| 0 | ML Risk > Resource Threshold | DENY | Micro-segmentation breach |
+| 1 | Global ML Risk > 0.8 | DENY | High risk score |
 | 2 | Device Trust < 0.5 AND ML Risk > 0.4 | DENY | Untrusted device + risk |
 | 3 | Device Trust < 0.5 | STEP_UP_AUTH | Require MFA |
 | 4 | Geo Risk > 0.7 | STEP_UP_AUTH | High geo risk |
@@ -155,6 +157,14 @@ Layer 4: Linear(32 → 1) + Sigmoid
 | 6 | Sensitive Segment AND Device Trust < 0.7 | DENY | Insufficient trust |
 | 7 | ML Risk > 0.6 | RATE_LIMIT | Moderate risk |
 | 8 | Default | ALLOW | All checks passed |
+
+**Resource Thresholds (example):**
+
+- admin: 0.4
+- database: 0.5
+- api: 0.6
+- internal: 0.7
+- web: 0.8
 
 **Access Decisions:**
 
@@ -188,10 +198,10 @@ for i in range(num_iter):
 
 **Network Constraints:**
 
-- Integer features rounded
-- Non-negative values enforced
-- Feature bounds respected
-- Realistic network flows maintained
+- **Gradient Masking**: Categorical features protected from drift
+- **Feature Clipping**: Per-feature valid ranges (duration >= 0, etc.)
+- **Integer Rounding**: Packet/Byte counts rounded
+- **Protocol Bounds**: Statistical range enforcement
 
 **Evasion Scenarios:**
 
@@ -289,6 +299,8 @@ for i in range(num_iter):
 
 - **False Positive Rate:** 2.8%
 - **False Negative Rate:** 35.9%
+- **ROC AUC (Clean):** 0.96
+- **ROC AUC (Adversarial):** 0.78 (Degradation analysis)
 - **Adversarial Evasion Success:** 20%
 - **Policy Bypass Rate:** 0% (context catches evaded flows)
 

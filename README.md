@@ -114,30 +114,48 @@ This project uses the **NSL-KDD dataset**, the industry benchmark for network in
 
 ---
 
+## 🔐 Adversarial Evaluation Methodology
+
+The framework evaluates adversarial impact under domain-constrained conditions:
+
+- **Feature Clipping**: Numeric features are clipped within valid operational ranges.
+- **Categorical Protection**: Gradient masking prevents perturbations from affecting encoded features.
+- **Adversarial Realism**: Feature-bound enforcement ensuring valid network flows.
+
+## 📊 Security-Focused Metrics
+
+Evaluation includes research-grade metrics:
+
+- **Confusion Matrix**: Detection quality and class errors.
+- **ROC Curve & AUC**: Performance across sensitivity thresholds.
+- **False Positive Rate (FPR)**: false alarm risk monitoring.
+- **False Negative Rate (FNR)**: Detection Gap / missed attacks.
+
+## 🛡️ Zero-Trust Enforcement
+
+Access decisions are determined by multi-factor verification:
+
+- **ML-derived Risk Score**: Real-time intrusion detection.
+- **Logic-Driven Trust Score**: Posture-based trust (Compliance, Behavior).
+- **Micro-Segmentation**: Segment-specific risk thresholds (e.g., DB vs Web).
+
+---
+
 ## 📁 Project Structure
 
 ```text
 ├── src/
-│   ├── attacks/        # FGSM & PGD evasion simulations
-│   ├── policy/         # Zero-Trust engine & context building
+│   ├── attacks/        # FGSM & PGD simulations with domain constraints
+│   ├── policy/         # ZTA engine with posture trust & micro-segmentation
 │   ├── risk_engine/    # ML Classifiers (Neural Networks)
+│   ├── traffic/        # Feature bounds & constraints
+│   ├── evaluation/     # Metrics (ROC, AUC, Confusion Matrix)
 │   └── system/         # Root integration logic
 ├── data/               # NSL-KDD dataset artifacts
 ├── models/             # Serialized model weights & preprocessors
-├── scripts/            # Training & production test scripts
-├── tests/              # technical unit & integration tests
+├── tests/              # Technical unit & integration tests
 └── docs/               # Deep-dive documentation index
 ```
-
----
-
-## 🛡️ Zero-Trust Policy Logic
-
-1. **High ML Risk (>0.8)** → **DENY**
-2. **Untrusted Device (<0.5)** + Elevated Risk → **DENY**
-3. **Untrusted Device (<0.5)** + Low Risk → **STEP_UP_AUTH** (MFA Required)
-4. **Geo-Risk Boundary (>0.7)** → **MFA Challenge**
-5. **Default Case** → **ALLOW** (with rate limiting if risk > 0.6)
 
 ---
 
