@@ -14,20 +14,32 @@ ps1/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
-# Model weights and artifacts
+# Models - Include core artifacts for the dashboard
 models/*.pkl
-models/*.pth
-models/*.h5
-shap_summary.png
+!models/.gitkeep
 
-# Streamlit config (if local)
-.streamlit/
+# Data - Include CSVs for research reproduction
+data/*.csv
+!data/.gitkeep
+logs/sessions/*
+logs/analytics/*
+!logs/sessions/.gitkeep
+!logs/analytics/.gitkeep
+
+# data/*.csv
+
+# Streamlit
+.streamlit/*
+!.streamlit/config.toml
 
 # Distribution files
 dist/
 build/
 *.egg-info/
 
-# Secret files
+# Secret files & OS junk
 .env
 *.log
+.DS_Store
+Thumbs.db
+desktop.ini

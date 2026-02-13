@@ -4,22 +4,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Framework: Streamlit](https://img.shields.io/badge/Framework-Streamlit-FF4B4B.svg)](https://streamlit.io/)
 
-**ZT-Shield (Original Version)** is a professional-grade research framework designed to evaluate and enhance the adversarial robustness of Machine Learning models within **Zero-Trust (ZT) Network Architectures**.
+**Adversarial ML Security Framework** is a modular, learning-focused project exploring how machine learning systems behave under adversarial conditions within a Zero-Trust inspired architecture.
 
-The framework provides an end-to-end pipeline: from high-fidelity network traffic simulation and baseline detection to rigorous black-box attack evaluation and adversarial fortification.
-
----
-
-## 🔬 Core Research Capabilities
-
-- **Hybrid Detection Engine**: Combines **Isolation Forest** (for unsupervised anomaly gatekeeping) and **Random Forest** (for high-precision classification).
-- **Advanced Attack Suite**: Implements **HopSkipJump (HSJ)** decision-boundary attacks and **Fast Gradient Method (FGM)** transfers.
-- **Resilience Engineering**: Automated **Adversarial Fortification** (Retraining) to bridge the security gap between Baseline and Robust states.
-- **Side-by-Side Analytics**: Visual verification of **Drift Resilience**, **Attack Resistance**, and **State Evolution** graphs.
+The project provides an experimental pipeline: from generating network traffic and training baseline detectors to evaluating robustness against black-box attacks and exploring model fortification techniques.
 
 ---
 
-## 📂 Project Structure
+## Core Exploration Areas
+
+- **Layered Detection**: Exploring the combination of **Isolation Forest** (for anomaly gatekeeping) and **Random Forest** (for classification).
+- **Adversarial Evaluation**: Implementing **HopSkipJump (HSJ)** decision-boundary attacks and **Fast Gradient Method (FGM)** transfers.
+- **Model Fortification**: Testing **Adversarial Retraining** to observe the security gap between Baseline and Robust states.
+- **Comparative Analytics**: Visual analysis of **Drift Resilience**, **Attack Resistance**, and **State Evolution** graphs.
+
+---
+
+## Project Structure
 
 ```text
 ├── src/
@@ -27,31 +27,48 @@ The framework provides an end-to-end pipeline: from high-fidelity network traffi
 │   ├── training/       # Model dev & fortification logic
 │   ├── attacks/        # HSJ & FGM implementation
 │   ├── evaluation/     # Metric suites & reporting
-│   └── dashboard/      # Research-Elite Streamlit Console
+│   ├── logging/        # Structured logging & analysis
+│   └── dashboard/      # Streamlit Analysis Console
 ├── docs/               # Technical Deep-Dives
-│   ├── WALKTHROUGH.md
-│   ├── IMPLEMENTATION_DESIGN.md
-│   └── GITHUB_GUIDE.md
+├── logs/               # Consolidated Logs (See logs/sessions)
+│   ├── sessions/       # Attack + Defense history (JSON/CSV)
+│   ├── attacks/        # (Provisioned Placeholder)
+│   └── analytics/      # Hardening reports
 ├── tests/              # Automated unit tests
-├── models/             # Pre-trained research assets
-└── threat_model.md     # Formal Attacker Matrix
+├── models/             # Local model artifacts (not committed)
+└── data/               # Benign & Combined traffic datasets
 ```
 
 ---
 
-## 🛠 Setup & Execution
+## Setup and Execution
 
 ### 1. Requirements
 
-Install the research-grade dependency suite:
+Install required dependencies:
 
 ```bash
-pip install pandas numpy scikit-learn matplotlib seaborn shap streamlit plotly adversarial-robustness-toolbox joblib
+pip install -r requirements.txt
 ```
 
-### 2. Launch the Research Console
+### 2. Initialization
 
-The system is controlled via a centralized SOC-style dashboard:
+Since datasets and models are generated locally, you must initialize the framework once before launching:
+
+```bash
+# Generate baseline traffic
+python src/simulation/traffic_generator.py
+
+# Simulate initial attacks
+python src/simulation/attack_generator.py
+
+# Train security models
+python src/training/core_model.py
+```
+
+### 3. Launch the Analysis Console
+
+The system is controlled via a centralized dashboard:
 
 ```bash
 streamlit run src/dashboard/app.py
@@ -59,18 +76,23 @@ streamlit run src/dashboard/app.py
 
 ---
 
-## 📄 Documentation Index
+## Documentation Index
 
-- **[Formal Threat Model](file:///c:/Adversarial%20Model%20training/threat_model.md)**: Understand the attacker capabilities and research constraints.
-- **[Verification Walkthrough](file:///c:/Adversarial%20Model%20training/docs/WALKTHROUGH.md)**: Follow the step-by-step guide to replicate all research results.
-- **[Implementation Design](file:///c:/Adversarial%20Model%20training/docs/IMPLEMENTATION_DESIGN.md)**: Detailed look at the modular architecture.
-- **[GitHub Upload Guide](file:///c:/Adversarial%20Model%20training/docs/GITHUB_GUIDE.md)**: Instructions for deploying this project to a public repository.
+- **[Master Research Report](FINAL_PROJECT_REPORT.md)**: Executive summary of research findings and defense gains.
+- **[Architecture Overview](ARCHITECTURE_OVERVIEW.md)**: System design, component interaction, and data flow.
+- **[Project Chronology](PROJECT_CHRONOLOGY.md)**: Timeline of development phases, critical fixes, and features.
+- **[Structured Logging Guide](LOGGING_SYSTEM.md)**: Detailed dive into the auditing architecture.
+- **[Logging Usage Guide](LOGGING_USAGE.md)**: Developer documentation for logging integration.
+- **[Experimental Walkthrough](WALKTHROUGH.md)**: Follow the step-by-step guide to replicate the observations.
+- **[Implementation Design](IMPLEMENTATION_DESIGN.md)**: Detailed look at the modular ML architecture.
+- **[Formal Threat Model](threat_model.md)**: Attacker capabilities and research constraints.
+- **[GitHub Deployment Guide](GITHUB_GUIDE.md)**: Instructions for project version control.
 
 ---
 
-## 🛡️ Research Ethics & Usage
+## Research Ethics and Usage
 
 This framework is intended for **Academic Research** and **Defensive Security** purposes only. It demonstrates how to fortify security infrastructure against advanced ML evasion techniques.
 
 ---
-*Developed for the ZT-Shield Open Source Project (2026).*
+*Developed as part of an adversarial ML security study (2026).*

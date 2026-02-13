@@ -1,6 +1,6 @@
 # Threat Model: Adversarial Network Defense
 
-This document formalizes the attacker capabilities, system constraints, and security assumptions used to evaluate the **ZT-Shield** research framework.
+This document formalizes the attacker capabilities, system constraints, and security assumptions used to evaluate the framework.
 
 ## 1. Attacker Profile & Goals
 
@@ -40,4 +40,4 @@ The framework evaluates the following attack vectors:
 | **Model Inversion** | Low | Low | Boundary Randomization (Future Work) |
 
 ---
-Created for the ZT-Shield Research Publication. (Version 1.0)
+Created as part of this adversarial ML security study. (Version 1.0)

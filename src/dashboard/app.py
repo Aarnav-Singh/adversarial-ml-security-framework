@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import time
 import os
 import sys
+import json
 
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -14,10 +15,18 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 # --- 1. CONFIGURATION & STYLING ---
 import src.config as config
 from src.core.utils import setup_logging
+from src.core.defense import ensemble_defense_predict
+from src.logging import (
+    LogManager, 
+    BlueTeamAnalytics, 
+    run_blackbox_attack_with_logging, 
+    run_whitebox_attack_with_logging,
+    analyze_logs_and_generate_report
+)
 
 # Professional Setup
 setup_logging()
-st.set_page_config(page_title="ZT-Shield: Research Elite Defense Console", layout="wide")
+st.set_page_config(page_title="Adversarial ML Security Framework: Analysis Console", layout="wide")
 
 # Custom CSS for SOC Aesthetic
 st.markdown("""
@@ -78,6 +87,32 @@ st.markdown("""
         border-radius: 5px;
         background-color: #0d1117;
     }
+
+    /* Distinguished Headers */
+    h1 {
+        border-bottom: 3px solid #39FF14;
+        padding-bottom: 15px;
+        margin-bottom: 50px !important;
+        text-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
+    }
+    
+    h2 {
+        border-left: 5px solid #636EFA;
+        padding-left: 15px;
+        margin-top: 35px !important;
+        margin-bottom: 15px !important;
+        background: linear-gradient(90deg, rgba(99, 110, 250, 0.15) 0%, transparent 100%);
+        border-radius: 0 5px 5px 0;
+    }
+    
+    h3 {
+        border-bottom: 1px solid #30363d;
+        display: inline-block;
+        padding-right: 20px;
+        padding-bottom: 5px;
+        margin-top: 25px !important;
+        color: #ecf0f1 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -124,9 +159,19 @@ if "incident_count" not in st.session_state:
     st.session_state.incident_count = 0
 if "threat_log" not in st.session_state:
     st.session_state.threat_log = []
+if "last_summary" not in st.session_state:
+    st.session_state.last_summary = None
+if "last_results_log" not in st.session_state:
+    st.session_state.last_results_log = None
+if "show_curves" not in st.session_state:
+    st.session_state.show_curves = False
+if "conf_threshold" not in st.session_state:
+    st.session_state.conf_threshold = config.CONFIDENCE_THRESHOLD
+if "log_mgr" not in st.session_state:
+    st.session_state.log_mgr = LogManager()
 
 # --- 4. LAYOUT ---
-st.title("🛡️ Zero-Trust Security Operations Platform")
+st.title("🛡️ Adversarial ML Security Framework")
 
 # Tabs
 tab_ops, tab_red, tab_blue = st.tabs([
@@ -289,16 +334,19 @@ with tab_ops:
              for msg in st.session_state.threat_log:
                  st.markdown(f"> {msg}")
         
+        # Significant Padding
+        st.markdown("<div style='height: 100px;'></div>", unsafe_allow_html=True)
+        st.subheader("Network Trust Level")
+        
         if not st.session_state.history.empty:
             last_trust = st.session_state.history.iloc[-1]['Trust']
         else:
             last_trust = 85
             
-        # Gauge Chart for Trust
+        # Gauge Chart for Trust (Removed internal title)
         fig = go.Figure(go.Indicator(
             mode = "gauge+number",
             value = last_trust,
-            title = {'text': "Network Trust Level"},
             gauge = {
                 'axis': {'range': [0, 100]}, 
                 'bar': {'color': "#2ECC71" if last_trust > 60 else "#FF4B4B"},
@@ -308,7 +356,7 @@ with tab_ops:
                 ]
             }
         ))
-        fig.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20), paper_bgcolor="#0E1117", font={'color': "white"})
+        fig.update_layout(height=200, margin=dict(l=20, r=20, t=10, b=10), paper_bgcolor="#0E1117", font={'color': "white"})
         st.plotly_chart(fig, use_container_width=True)
         
     # --- RERUN LOGIC ---
@@ -347,85 +395,159 @@ with tab_red:
         
         launch_btn = st.button("🚀 Launch Attack Simulation")
     
+    log_mgr = st.session_state.log_mgr
+    active_conf = st.session_state.conf_threshold
+    
     if launch_btn:
-        with st.spinner(f"Initiating {attack_type} sequence..."):
-            try:
-                # Use fortified if it exists and we're not explicitly staying on baseline
-                is_fort = os.path.exists(os.path.join(config.MODEL_DIR, "fortified_random_forest.pkl"))
-                current_model = "fortified_random_forest.pkl" if is_fort else "random_forest.pkl"
-                
-                # Load Assets
-                rf_model, iso_model, X_test, y_test, X_train, y_train, clip_values = get_eval_data(model_name=current_model)
-                
-                # Determine Attack Function & Parameters
-                if "Black-Box" in attack_type:
-                    attack_fn = run_blackbox_attack
-                    attack_kwargs = {"max_iter": config.HSJ_MAX_ITER}
-                else:
-                    surr_model, _ = train_surrogate(X_train, y_train)
-                    attack_fn = lambda *args, **kwargs: run_whitebox_attack(surr_model, *args, **kwargs)
-                    attack_kwargs = {"eps": config.FGM_EPS}
-                
-                # Run Research Suite
-                summary, results_log = run_research_suite(
-                    attack_fn, rf_model, iso_model, X_test, y_test, clip_values,
-                    multi_seed=multi_seed, sample_size=sample_size, **attack_kwargs
-                )
-                
-                st.success("Research Simulation Complete.")
-                
-                with col_attack_results:
-                    st.markdown("### 📊 Research Analytics (V2)")
-                    col_res1, col_res2, col_res3 = st.columns(3)
-                    
-                    # Display metrics with uncertainty logic
-                    if multi_seed:
-                        val_str = f"{summary['mean_evasion_def']*100:.1f} ± {summary['ci_95']*100:.1f}%"
-                        help_txt = f"95% Confidence Interval (Stochastic Variance). P-value: {summary['p_value']:.4f}"
-                    else:
-                        val_str = f"{summary['mean_evasion_def']*100:.1f}%"
-                        help_txt = "Single run baseline."
-                        
-                    col_res1.metric("Avg. Evasion (Defended)", val_str, 
-                                delta=f"{-(summary['mean_evasion_base'] - summary['mean_evasion_def'])*100:.1f}%",
-                                help=help_txt)
-                    col_res2.metric("Robust Accuracy", f"{summary['mean_robust_acc_def']*100:.1f}%")
-                    col_res3.metric("Avg. Latency", f"{summary['mean_latency_ms']:.2f}ms")
-                    
-                    if multi_seed:
-                        st.info(f"**Statistical Significance**: {'✅ HIGH' if summary['is_significant'] else '⚠️ LOW'} (p={summary['p_value']:.4f}, Effect Size: {summary['cohens_d']:.2f})")
-                    
-                    # Chart: Resilience Comparison
-                    df_res = pd.DataFrame({
-                        "Defense Configuration": ["Undefended", "ZT-Shield (Defended)"],
-                        "Attack Success Rate (ASR)": [summary['mean_evasion_base'], summary['mean_evasion_def']]
-                    })
-                    fig_bar = px.bar(df_res, x="Defense Configuration", y="Attack Success Rate (ASR)", color="Defense Configuration", 
-                                     title="Defense Impact on Adversarial Evasion", text_auto='.2%')
-                    fig_bar.update_layout(paper_bgcolor="#0E1117", font={'color': "white"})
-                    st.plotly_chart(fig_bar, use_container_width=True)
-                    
-                    # Query Complexity (if Black-Box)
-                    if "Black-Box" in attack_type and "avg_queries" in summary or (len(results_log) > 0 and "avg_queries" in results_log[0]):
-                        avg_q = summary.get("avg_queries", results_log[0].get("avg_queries", 0))
-                        st.metric("Avg. Queries per Evasion", f"{avg_q:.0f}", help="Indicates the computational cost for the attacker.")
+        # Create placeholders for progress tracking
+        progress_placeholder = st.empty()
+        status_placeholder = st.empty()
+        
+        try:
+            # Use fortified if it exists and we're not explicitly staying on baseline
+            is_fort = os.path.exists(os.path.join(config.MODEL_DIR, "fortified_random_forest.pkl"))
+            current_model = "fortified_random_forest.pkl" if is_fort else "random_forest.pkl"
+            
+            # Load Assets
+            status_placeholder.info(f"⚙️ Loading models and test data...")
+            progress_placeholder.progress(0.1)
+            rf_model, iso_model, X_test, y_test, X_train, y_train, clip_values = get_eval_data(model_name=current_model)
+            
+            # Determine Attack Function & Parameters
+            if "Black-Box" in attack_type:
+                status_placeholder.info(f"🎯 Configuring Black-Box (HopSkipJump) attack with SOC Logging...")
+                progress_placeholder.progress(0.2)
+                # Use logging wrapper
+                attack_fn = lambda *args, **kwargs: run_blackbox_attack_with_logging(*args, log_manager=log_mgr, **kwargs)
+                attack_kwargs = {"max_iter": config.HSJ_MAX_ITER}
+            else:
+                status_placeholder.info(f"🧠 Training surrogate model for White-Box attack with SOC Logging...")
+                progress_placeholder.progress(0.2)
+                surr_model, _ = train_surrogate(X_train, y_train)
+                # Use logging wrapper
+                attack_fn = lambda rf, *args, **kwargs: run_whitebox_attack_with_logging(surr_model, *args, log_manager=log_mgr, **kwargs)
+                attack_kwargs = {"eps": config.FGM_EPS}
+            
+            # Calculate total runs
+            num_runs = 3 if multi_seed else 1
+            status_placeholder.info(f"🚀 Launching {num_runs} attack run(s) on {sample_size} samples...")
+            progress_placeholder.progress(0.3)
+            
+            # Run Research Suite with progress tracking
+            # We'll update progress after each seed completes
+            summary, results_log = run_research_suite(
+                attack_fn, rf_model, iso_model, X_test, y_test, clip_values,
+                multi_seed=multi_seed, sample_size=sample_size, 
+                conf_threshold=active_conf, **attack_kwargs
+            )
+            
+            # Final progress
+            progress_placeholder.progress(1.0)
+            status_placeholder.success(f"✅ Attack simulation complete! Processed {len(results_log)} run(s).")
+            
+            # Persist in session state
+            st.session_state.last_summary = summary
+            st.session_state.last_results_log = results_log
+            st.session_state.show_curves = False # Reset on new simulation
+            
+            time.sleep(1)  # Brief pause to show completion
+            progress_placeholder.empty()
+            status_placeholder.empty()
+            st.success("Research Simulation Complete.")
+        except Exception as e:
+            progress_placeholder.empty()
+            status_placeholder.empty()
+            st.error(f"Simulation Failed: {str(e)}")
 
-                    # --- Dual Robustness Curves ---
-                    st.markdown("### 🛡️ Adversarial Robustness Curves")
-                    if st.button("📈 Compare Robustness Curves"):
-                        with st.spinner("Sweeping epsilon values (0.01 - 0.50)..."):
-                            surr_sweep, _ = train_surrogate(X_train, y_train)
-                            eps_df = run_epsilon_sweep(rf_model, iso_model, surr_sweep, X_test, y_test, clip_values)
-                            
-                            # Melt for Plotly
-                            df_plot = eps_df.melt(id_vars="epsilon", var_name="Model", value_name="Accuracy")
-                            fig_eps = px.line(df_plot, x="epsilon", y="Accuracy", color="Model", markers=True,
-                                              title="Baseline vs. Defended Robustness Strategy")
-                            fig_eps.update_layout(paper_bgcolor="#0E1117", font={'color': "white"})
-                            st.plotly_chart(fig_eps)
+    # --- PERSISTENT RESULTS DISPLAY ---
+    if st.session_state.last_summary:
+        summary = st.session_state.last_summary
+        results_log = st.session_state.last_results_log
+        
+        with col_attack_results:
+            st.markdown("### 📊 Research Analytics (V2)")
+            col_res1, col_res2, col_res3 = st.columns(3)
+            
+            # Display metrics with uncertainty logic
+            if "ci_95" in summary and multi_seed:
+                val_str = f"{summary['mean_evasion_def']*100:.1f} ± {summary['ci_95']*100:.1f}%"
+                help_txt = f"95% Confidence Interval (Stochastic Variance). P-value: {summary.get('p_value', 1.0):.4f}"
+            else:
+                val_str = f"{summary['mean_evasion_def']*100:.1f}%"
+                help_txt = "Single run baseline."
+                
+            col_res1.metric("Avg. Evasion (Defended)", val_str, 
+                        delta=f"{-(summary['mean_evasion_base'] - summary['mean_evasion_def'])*100:.1f}%",
+                        help=help_txt)
+            col_res2.metric("Robust Accuracy", f"{summary['mean_robust_acc_def']*100:.1f}%")
+            col_res3.metric("Avg. Latency", f"{summary['mean_latency_ms']:.2f}ms")
+            
+            if multi_seed and 'is_significant' in summary:
+                st.info(f"**Statistical Significance**: {'✅ HIGH' if summary['is_significant'] else '⚠️ LOW'} (p={summary['p_value']:.4f}, Effect Size: {summary['cohens_d']:.2f})")
+            
+            # Chart: Resilience Comparison
+            df_res = pd.DataFrame({
+                "Defense Configuration": ["Undefended", "ZT-Shield (Defended)"],
+                "Attack Success Rate (ASR)": [summary['mean_evasion_base'], summary['mean_evasion_def']]
+            })
+            fig_bar = px.bar(df_res, x="Defense Configuration", y="Attack Success Rate (ASR)", color="Defense Configuration", 
+                                 title="Defense Impact on Adversarial Evasion", text_auto='.2%')
+            fig_bar.update_layout(paper_bgcolor="#0E1117", font={'color': "white"})
+            st.plotly_chart(fig_bar, use_container_width=True)
+            # Query Complexity (if Black-Box)
+            if "Black-Box" in attack_type:
+                avg_q = summary.get("avg_queries")
+                if avg_q is None and len(results_log) > 0:
+                    avg_q = results_log[0].get("avg_queries", 0)
+                
+                if avg_q is not None:
+                    st.metric("Avg. Queries per Evasion", f"{avg_q:.0f}", help="Indicates the computational cost for the attacker.")
+
+            # --- LOG EXPORT SECTION ---
+            st.markdown("### 📥 SOC Activity Logs")
+            log_col1, log_col2 = st.columns(2)
+            with log_col1:
+                if st.button("📄 Export JSON (for Analytics)"):
+                    path = log_mgr.export_logs(format='json')
+                    st.success(f"JSON Exported: {os.path.basename(path)}")
+                if st.button("📝 Export Markdown (for Report)"):
+                    path = log_mgr.export_logs(format='md')
+                    st.success(f"Markdown Exported: {os.path.basename(path)}")
+            with log_col2:
+                if st.button("📊 Export CSV (for Data Science)"):
+                    path = log_mgr.export_logs(format='csv')
+                    st.success(f"CSV Exported: {os.path.basename(path)}")
+                if st.button("🧹 Clear Session Logs"):
+                    log_mgr.clear_session()
+                    st.info("Log session cleared.")
+
+            # --- Dual Robustness Curves ---
+            st.markdown("### 🛡️ Adversarial Robustness Curves")
+            if st.button("📈 Compare Robustness Curves"):
+                st.session_state.show_curves = True
+
+            if st.session_state.show_curves:
+                with st.spinner("Sweeping epsilon values (0.01 - 0.50)..."):
+                    # Re-load data for sweep if necessary
+                    is_fort = os.path.exists(os.path.join(config.MODEL_DIR, "fortified_random_forest.pkl"))
+                    current_model = "fortified_random_forest.pkl" if is_fort else "random_forest.pkl"
+                    rf_model, iso_model, X_test, y_test, X_train, y_train, clip_values = get_eval_data(model_name=current_model)
                     
-            except Exception as e:
-                st.error(f"Simulation Failed: {str(e)}")
+                    from src.training.surrogate import train_surrogate
+                    surr_sweep, _ = train_surrogate(X_train, y_train)
+                    eps_df = run_epsilon_sweep(
+                        rf_model, iso_model, surr_sweep, X_test, y_test, clip_values, 
+                        eps_values=config.EPS_VALUES,
+                        ensemble_defense_predict_func=ensemble_defense_predict,
+                        sample_size=sample_size
+                    )
+                    
+                    # Melt for Plotly
+                    df_plot = eps_df.melt(id_vars="epsilon", var_name="Model", value_name="Accuracy")
+                    fig_eps = px.line(df_plot, x="epsilon", y="Accuracy", color="Model", markers=True,
+                                        title="Baseline vs. Defended Robustness Strategy")
+                    fig_eps.update_layout(paper_bgcolor="#0E1117", font={'color': "white"})
+                    st.plotly_chart(fig_eps, use_container_width=True)
 
 # --- TAB 3: BLUE TEAM (DEFENSE) ---
 with tab_blue:
@@ -443,6 +565,7 @@ with tab_blue:
     # Alias for XAI Compatibility
     rf_model = rf_active 
 
+    st.markdown("---")
     col_metrics, col_xai = st.columns([2, 1])
 
     with col_metrics:
@@ -464,41 +587,6 @@ with tab_blue:
         st.metric(f"Accuracy on Clean Data ({active_stage})", f"{display_acc*100:.1f}%")
         
         st.subheader("Simulations & Research Verification")
-        if st.button("📊 Run Stage Evolution Analysis"):
-            if is_fortified_exists:
-                with st.spinner("Analyzing Stage Leap..."):
-                    rf_fortified = joblib.load(os.path.join(config.MODEL_DIR, "fortified_random_forest.pkl"))
-                    
-                    # Metrics
-                    base_clean = np.mean(rf_baseline.predict(X_test) == y_test)
-                    fort_clean = np.mean(rf_fortified.predict(X_test) == y_test)
-                    
-                    # Heavy Drift (Noise = 0.6)
-                    X_heavy_drift = X_test + np.random.normal(0, 0.6, X_test.shape)
-                    base_drift = np.mean(rf_baseline.predict(X_heavy_drift) == y_test)
-                    fort_drift = np.mean(rf_fortified.predict(X_heavy_drift) == y_test)
-                    
-                    # Simulated Robustness (Research Success - ASR Reduction)
-                    base_robust = 0.12 
-                    fort_robust = 0.88 
-                    
-                    stage_data = pd.DataFrame([
-                        {"Metric": "Clean Accuracy", "Score": base_clean, "Stage": "Baseline"},
-                        {"Metric": "Clean Accuracy", "Score": fort_clean, "Stage": "Fortified"},
-                        {"Metric": "Drift Resilience", "Score": base_drift, "Stage": "Baseline"},
-                        {"Metric": "Drift Resilience", "Score": fort_drift, "Stage": "Fortified"},
-                        {"Metric": "Adv. Robustness", "Score": base_robust, "Stage": "Baseline"},
-                        {"Metric": "Adv. Robustness", "Score": fort_robust, "Stage": "Fortified"}
-                    ])
-                    
-                    fig_stage = px.bar(stage_data, x="Metric", y="Score", color="Stage", barmode="group",
-                                      title="The Security Gap: Modular Verification", text_auto='.1%',
-                                      color_discrete_map={"Baseline": "#636EFA", "Fortified": "#00CC96"})
-                    fig_stage.update_layout(paper_bgcolor="#0E1117", font={'color': "white"}, height=350)
-                    st.plotly_chart(fig_stage, use_container_width=True)
-            else:
-                st.info("Complete 'Adversarial Fortification' to unlock Stage comparison.")
-
         if st.button("🌊 Run Drift Tolerance Stress Test"):
             if is_fortified_exists:
                 with st.spinner("Stress testing both stages across 10 noise levels..."):
@@ -553,6 +641,41 @@ with tab_blue:
                     st.success(f"PASSED: `{active_stage}` accuracy of {display_acc*100:.1f}% meets production threshold (80%).")
                 else:
                     st.error(f"FAILED: `{active_stage}` accuracy of {display_acc*100:.1f}% is below production threshold (80%).")
+
+        if st.button("📊 Run Stage Evolution Analysis"):
+            if is_fortified_exists:
+                with st.spinner("Analyzing Stage Leap..."):
+                    rf_fortified = joblib.load(os.path.join(config.MODEL_DIR, "fortified_random_forest.pkl"))
+                    
+                    # Metrics
+                    base_clean = np.mean(rf_baseline.predict(X_test) == y_test)
+                    fort_clean = np.mean(rf_fortified.predict(X_test) == y_test)
+                    
+                    # Heavy Drift (Noise = 0.6)
+                    X_heavy_drift = X_test + np.random.normal(0, 0.6, X_test.shape)
+                    base_drift = np.mean(rf_baseline.predict(X_heavy_drift) == y_test)
+                    fort_drift = np.mean(rf_fortified.predict(X_heavy_drift) == y_test)
+                    
+                    # Simulated Robustness (Research Success - ASR Reduction)
+                    base_robust = 0.12 
+                    fort_robust = 0.88 
+                    
+                    stage_data = pd.DataFrame([
+                        {"Metric": "Clean Accuracy", "Score": base_clean, "Stage": "Baseline"},
+                        {"Metric": "Clean Accuracy", "Score": fort_clean, "Stage": "Fortified"},
+                        {"Metric": "Drift Resilience", "Score": base_drift, "Stage": "Baseline"},
+                        {"Metric": "Drift Resilience", "Score": fort_drift, "Stage": "Fortified"},
+                        {"Metric": "Adv. Robustness", "Score": base_robust, "Stage": "Baseline"},
+                        {"Metric": "Adv. Robustness", "Score": fort_robust, "Stage": "Fortified"}
+                    ])
+                    
+                    fig_stage = px.bar(stage_data, x="Metric", y="Score", color="Stage", barmode="group",
+                                      title="The Security Gap: Modular Verification", text_auto='.1%',
+                                      color_discrete_map={"Baseline": "#636EFA", "Fortified": "#00CC96"})
+                    fig_stage.update_layout(paper_bgcolor="#0E1117", font={'color': "white"}, height=350)
+                    st.plotly_chart(fig_stage, use_container_width=True)
+            else:
+                st.info("Complete 'Adversarial Fortification' to unlock Stage comparison.")
 
         st.subheader("🛡️ Adversarial Fortification")
         st.markdown("Retrain the model on adversarial examples to improve robustness.")

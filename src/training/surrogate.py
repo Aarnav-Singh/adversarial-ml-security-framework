@@ -24,7 +24,7 @@ class SimpleNN(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-def train_surrogate(X, y, seed=42):
+def train_surrogate(X, y, epochs=SURROGATE_EPOCHS, seed=42):
     """
     Trains a surrogate neural network with research-grade rigor:
     - Stratified Train/Val split
@@ -51,7 +51,7 @@ def train_surrogate(X, y, seed=42):
     best_model_state = None
     patience_counter = 0
     
-    for epoch in range(SURROGATE_EPOCHS):
+    for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
         
