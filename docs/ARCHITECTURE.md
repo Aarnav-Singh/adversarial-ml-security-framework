@@ -107,7 +107,7 @@ This document describes the complete architecture of the Zero-Trust Network Adve
 
 **Architecture:**
 
-```
+```text
 Layer 1: Linear(41 → 128) + ReLU + Dropout(0.3)
 Layer 2: Linear(128 → 64) + ReLU + Dropout(0.3)
 Layer 3: Linear(64 → 32) + ReLU
@@ -214,7 +214,7 @@ for i in range(num_iter):
 
 ### Normal Flow Processing
 
-```
+```text
 1. Network packet arrives
 2. Extract 41 features
 3. Preprocess (encode, scale)
@@ -232,7 +232,7 @@ for i in range(num_iter):
 
 ### Adversarial Flow Processing
 
-```
+```text
 1. Malicious flow detected (risk: 0.9)
 2. Attacker generates adversarial example
 3. FGSM perturbation applied
@@ -306,7 +306,7 @@ for i in range(num_iter):
 
 ## Deployment Architecture
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │         Production Deployment           │
 └─────────────────────────────────────────┘
