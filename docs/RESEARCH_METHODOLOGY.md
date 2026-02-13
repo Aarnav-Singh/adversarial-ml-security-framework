@@ -255,7 +255,7 @@ Policy Bypass Rate = # attacks with ALLOW decision / # total attacks
 
 **Cohen's d:**
 
-```
+```text
 d = (mean_ZT - mean_ML) / pooled_std
 d = (0.80 - 0.20) / 0.15 = 4.0
 ```

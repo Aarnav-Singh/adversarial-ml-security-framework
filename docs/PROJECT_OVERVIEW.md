@@ -87,7 +87,7 @@ This project addresses both challenges by:
 
 ### Component Layers
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Data Layer                           │
 │  - NSL-KDD Dataset Loading                              │
@@ -229,7 +229,7 @@ This project addresses both challenges by:
 
 ## Project Structure
 
-```
+```text
 Zero trust project/
 ├── data/                          # NSL-KDD dataset
 │   ├── KDDTrain+.txt             # Training data (125K samples)

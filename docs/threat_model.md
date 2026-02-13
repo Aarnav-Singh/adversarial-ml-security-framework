@@ -94,7 +94,7 @@ Adversarial perturbations must maintain **network flow validity**:
 - **Goal**: Reduce ML risk score below detection threshold
 - **Effectiveness**: 20% evasion success rate (ε=0.05)
 
-**Attack Process:**
+### Attack Process
 
 ```text
 1. Get malicious flow x with label y=1 (attack)

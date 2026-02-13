@@ -6,7 +6,7 @@ This document describes the complete architecture of the Zero-Trust Network Adve
 
 ## High-Level Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                 ZERO-TRUST NETWORK SYSTEM                   │
 └─────────────────────────────────────────────────────────────┘
