@@ -174,10 +174,11 @@ if "log_mgr" not in st.session_state:
 st.title("🛡️ Adversarial ML Security Framework")
 
 # Tabs
-tab_ops, tab_red, tab_blue = st.tabs([
+tab_ops, tab_red, tab_blue, tab_zt = st.tabs([
     "🟢 Operations (SOC)", 
     "🔴 Red Team (Adversarial)", 
-    "🟣 Blue Team (Defense)"
+    "🟣 Blue Team (Defense)",
+    "🔵 Zero-Trust Network"
 ])
 
 # --- TAB 1: OPERATIONS (SOC) ---
@@ -730,4 +731,254 @@ with tab_blue:
                 st.image(shap_path, caption="SHAP Global Importance Distribution")
             else:
                 st.warning("SHAP summary image not found.")
+
+# --- TAB 4: ZERO-TRUST NETWORK ---
+with tab_zt:
+    st.header("🔵 Zero-Trust Network Security")
+    st.info("Real network traffic analysis (NSL-KDD) with ML risk scoring + context-aware policy enforcement")
+    
+    # Import Zero-Trust components
+    try:
+        from src.system.zero_trust_network import ZeroTrustNetworkSystem
+        from src.data.network_loader import NetworkDataLoader
+        from src.attacks.network_adversarial import NetworkAdversarialAttacker
+        import torch
+    except ImportError as e:
+        st.error(f"Failed to import Zero-Trust components: {e}")
+        st.stop()
+    
+    @st.cache_resource
+    def load_zero_trust_system():
+        """Load Zero-Trust Network System"""
+        try:
+            model_path = os.path.join(os.path.dirname(__file__), "../../models/network_risk_classifier.pth")
+            system = ZeroTrustNetworkSystem(model_path=model_path)
+            return system
+        except Exception as e:
+            st.error(f"Failed to load Zero-Trust system: {e}")
+            return None
+
+    @st.cache_resource
+    def load_network_data():
+        """Load NSL-KDD network data"""
+        try:
+            loader = NetworkDataLoader()
+            # Load preprocessors
+            preprocessor_path = os.path.join(os.path.dirname(__file__), "../../models")
+            loader.load_preprocessors(preprocessor_path)
+            
+            test_path = os.path.join(os.path.dirname(__file__), "../../data/KDDTest+.txt")
+            X_test, y_test, y_orig = loader.load_and_preprocess(test_path, is_train=False)
+            return loader, X_test, y_test, y_orig
+        except Exception as e:
+            st.error(f"Failed to load network data: {e}")
+            return None, None, None, None
+    
+    # Load Zero-Trust system
+    zt_system = load_zero_trust_system()
+    loader, X_test, y_test, y_orig = load_network_data()
+    
+    if zt_system is None or X_test is None:
+        st.error("Failed to load Zero-Trust system. Please ensure models and data are available.")
+    else:
+        col_controls, col_monitor = st.columns([1, 2])
+        
+        with col_controls:
+            st.subheader("📡 Network Monitor")
+            
+            # Flow selection
+            flow_type = st.selectbox("Traffic Type", ["Malicious Flows", "Benign Flows", "Random Mix"])
+            num_flows = st.slider("Number of Flows to Process", 1, 50, 10)
+            
+            # Policy configuration
+            st.markdown("### 🛡️ Policy Configuration")
+            ml_risk_threshold = st.slider("ML Risk Deny Threshold", 0.0, 1.0, 0.8, 0.05)
+            device_trust_min = st.slider("Min Device Trust", 0.0, 1.0, 0.5, 0.05)
+            
+            st.info(f"Current Policy: Deny if ML Risk > {ml_risk_threshold} OR Device Trust < {device_trust_min}")
+            
+            # Process flows button
+            process_btn = st.button("🚀 Process Network Flows")
+            
+            # Adversarial attack section
+            st.markdown("### ⚔️ Adversarial Testing")
+            attack_epsilon = st.slider("Attack Strength (Epsilon)", 0.01, 0.20, 0.05, 0.01)
+            test_attack_btn = st.button("🎯 Test Adversarial Evasion")
+        
+        with col_monitor:
+            st.subheader("Live Network Flow Analysis")
+            
+            if process_btn:
+                # Select flows based on type
+                if flow_type == "Malicious Flows":
+                    indices = np.where(y_test == 1)[0][:num_flows]
+                elif flow_type == "Benign Flows":
+                    indices = np.where(y_test == 0)[0][:num_flows]
+                else:
+                    indices = np.random.choice(len(X_test), num_flows, replace=False)
+                
+                # Process each flow
+                results = []
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                for i, idx in enumerate(indices):
+                    flow = X_test[idx]
+                    result = zt_system.process_network_request(flow, int(idx))
+                    results.append(result)
+                    
+                    # Update progress
+                    progress_bar.progress((i + 1) / len(indices))
+                    status_text.text(f"Processing flow {i+1}/{len(indices)}...")
+                
+                progress_bar.empty()
+                status_text.empty()
+                
+                # Display results
+                st.success(f"✅ Processed {len(results)} network flows")
+                
+                # Show latest decision
+                latest = results[-1]
+                decision = latest['decision'].value
+                
+                if decision == "ALLOW":
+                    st.markdown(f"""
+                    <div class="allow-card">
+                        <h2>✅ ACCESS GRANTED</h2>
+                        <p>{latest['reason']}</p>
+                        <p>ML Risk: {latest['ml_risk_score']:.3f}</p>
+                        <p>User: {latest['context'].user_identity}</p>
+                        <p>Device Trust: {latest['context'].device_trust_score:.2f}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif decision == "DENY":
+                    st.markdown(f"""
+                    <div class="deny-card">
+                        <h2>🚫 ACCESS DENIED</h2>
+                        <p>{latest['reason']}</p>
+                        <p>ML Risk: {latest['ml_risk_score']:.3f}</p>
+                        <p>Segment: {latest['context'].requested_segment}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:  # STEP_UP_AUTH
+                    st.markdown(f"""
+                    <div class="mfa-card">
+                        <h2>🔐 MFA REQUIRED</h2>
+                        <p>{latest['reason']}</p>
+                        <p>ML Risk: {latest['ml_risk_score']:.3f}</p>
+                        <p>Geo Risk: {latest['context'].geo_risk_score:.2f}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Decision breakdown
+                st.markdown("### 📊 Decision Breakdown")
+                decision_counts = {}
+                for r in results:
+                    dec = r['decision'].value
+                    decision_counts[dec] = decision_counts.get(dec, 0) + 1
+                
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("ALLOW", decision_counts.get("ALLOW", 0))
+                col2.metric("DENY", decision_counts.get("DENY", 0))
+                col3.metric("MFA", decision_counts.get("STEP_UP_AUTH", 0))
+                col4.metric("RATE_LIMIT", decision_counts.get("RATE_LIMIT", 0))
+                
+                # Results table
+                df_results = pd.DataFrame([{
+                    "Flow": i,
+                    "Decision": r['decision'].value,
+                    "ML Risk": f"{r['ml_risk_score']:.3f}",
+                    "Device Trust": f"{r['context'].device_trust_score:.2f}",
+                    "Segment": r['context'].requested_segment,
+                    "Reason": r['reason'][:50] + "..." if len(r['reason']) > 50 else r['reason']
+                } for i, r in enumerate(results)])
+                
+                st.dataframe(df_results, use_container_width=True, height=300)
+            
+            if test_attack_btn:
+                st.markdown("### ⚔️ Adversarial Attack Simulation")
+                
+                # Get malicious flows
+                mal_indices = np.where(y_test == 1)[0][:10]
+                X_malicious = X_test[mal_indices]
+                
+                # Create attacker
+                bounds = loader.get_feature_bounds(X_test)
+                attacker = NetworkAdversarialAttacker(zt_system.risk_model, bounds)
+                
+                # Generate adversarial examples
+                with st.spinner("Generating adversarial examples with FGSM..."):
+                    X_adv_list = []
+                    for x in X_malicious:
+                        x_adv = attacker.constrained_fgsm(x, epsilon=attack_epsilon, target_label=0)
+                        X_adv_list.append(x_adv[0])
+                    X_adv = np.array(X_adv_list)
+                
+                # Evaluate evasion
+                evasion_results = zt_system.evaluate_adversarial_evasion(
+                    X_clean=X_malicious,
+                    X_adv=X_adv,
+                    flow_indices=range(len(X_malicious))
+                )
+                
+                # Display results
+                st.success("✅ Adversarial attack simulation complete!")
+                
+                col_ev1, col_ev2, col_ev3 = st.columns(3)
+                col_ev1.metric("Evasion Success Rate", f"{evasion_results['evasion_success_rate']:.1%}")
+                col_ev2.metric("Clean Deny Rate", f"{evasion_results['clean_deny_rate']:.1%}")
+                col_ev3.metric("Adv Allow Rate", f"{evasion_results['adv_allow_rate']:.1%}")
+                
+                # Risk score comparison
+                st.markdown("### 📈 Risk Score Analysis")
+                fig_risk = go.Figure()
+                fig_risk.add_trace(go.Box(y=[r['ml_risk_score'] for r in evasion_results['detailed_results']['clean']], 
+                                         name="Clean", marker_color='#FF4B4B'))
+                fig_risk.add_trace(go.Box(y=[r['ml_risk_score'] for r in evasion_results['detailed_results']['adversarial']], 
+                                         name="Adversarial", marker_color='#FFA500'))
+                fig_risk.update_layout(
+                    title="ML Risk Score Distribution: Clean vs Adversarial",
+                    yaxis_title="Risk Score",
+                    paper_bgcolor="#0E1117",
+                    plot_bgcolor="#0E1117",
+                    font={'color': "white"}
+                )
+                st.plotly_chart(fig_risk, use_container_width=True)
+                
+                # Key insight
+                if evasion_results['evasion_success_rate'] < 0.5:
+                    st.success(f"✅ Zero-Trust policies successfully blocked {(1-evasion_results['evasion_success_rate'])*100:.0f}% of adversarial attacks!")
+                else:
+                    st.warning(f"⚠️ {evasion_results['evasion_success_rate']*100:.0f}% of adversarial attacks evaded detection. Consider tightening policies.")
+        
+        # Telemetry section
+        st.markdown("---")
+        st.subheader("📋 SOC Telemetry Logs")
+        
+        if len(zt_system.access_log) > 0:
+            # Export options
+            col_exp1, col_exp2, col_exp3 = st.columns(3)
+            with col_exp1:
+                if st.button("📥 Export JSON"):
+                    log_path = os.path.join(os.path.dirname(__file__), "../../logs/zt_telemetry.json")
+                    zt_system.export_telemetry(log_path)
+                    st.success(f"Exported to logs/zt_telemetry.json")
+            
+            with col_exp2:
+                summary = zt_system.get_decision_summary()
+                st.metric("Total Decisions", summary['total'])
+            
+            with col_exp3:
+                if st.button("🧹 Clear Logs"):
+                    zt_system.access_log = []
+                    st.rerun()
+            
+            # Display recent logs
+            df_logs = pd.DataFrame(zt_system.access_log[-20:])
+            if 'timestamp' in df_logs.columns:
+                df_logs = df_logs.drop('timestamp', axis=1)
+            st.dataframe(df_logs, use_container_width=True, height=300)
+        else:
+            st.info("No telemetry data yet. Process some network flows to generate logs.")
+
 

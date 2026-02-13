@@ -1,98 +1,148 @@
-# Adversarial ML Security Framework 
-
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Framework: Streamlit](https://img.shields.io/badge/Framework-Streamlit-FF4B4B.svg)](https://streamlit.io/)
-
-**Adversarial ML Security Framework** is a modular, learning-focused project exploring how machine learning systems behave under adversarial conditions within a Zero-Trust inspired architecture.
-
-The project provides an experimental pipeline: from generating network traffic and training baseline detectors to evaluating robustness against black-box attacks and exploring model fortification techniques.
-
----
-
-## Core Exploration Areas
-
-- **Layered Detection**: Exploring the combination of **Isolation Forest** (for anomaly gatekeeping) and **Random Forest** (for classification).
-- **Adversarial Evaluation**: Implementing **HopSkipJump (HSJ)** decision-boundary attacks and **Fast Gradient Method (FGM)** transfers.
-- **Model Fortification**: Testing **Adversarial Retraining** to observe the security gap between Baseline and Robust states.
-- **Comparative Analytics**: Visual analysis of **Drift Resilience**, **Attack Resistance**, and **State Evolution** graphs.
-
----
-
-## Project Structure
-
-```text
-├── src/
-│   ├── simulation/     # Traffic & Attack generators
-│   ├── training/       # Model dev & fortification logic
-│   ├── attacks/        # HSJ & FGM implementation
-│   ├── evaluation/     # Metric suites & reporting
-│   ├── logging/        # Structured logging & analysis
-│   └── dashboard/      # Streamlit Analysis Console
-├── docs/               # Technical Deep-Dives
-├── logs/               # Consolidated Logs (See logs/sessions)
-│   ├── sessions/       # Attack + Defense history (JSON/CSV)
-│   ├── attacks/        # (Provisioned Placeholder)
-│   └── analytics/      # Hardening reports
-├── tests/              # Automated unit tests
-├── models/             # Local model artifacts (not committed)
-└── data/               # Benign & Combined traffic datasets
-```
-
----
-
-## Setup and Execution
-
-### 1. Requirements
-
-Install required dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Initialization
-
-Since datasets and models are generated locally, you must initialize the framework once before launching:
-
-```bash
-# Generate baseline traffic
-python src/simulation/traffic_generator.py
-
-# Simulate initial attacks
-python src/simulation/attack_generator.py
-
-# Train security models
-python src/training/core_model.py
-```
-
-### 3. Launch the Analysis Console
-
-The system is controlled via a centralized dashboard:
-
-```bash
-streamlit run src/dashboard/app.py
-```
-
----
+# Adversarial Attack Detection in Zero-Trust Networks
 
 ## Documentation Index
 
-- **[Master Research Report](FINAL_PROJECT_REPORT.md)**: Executive summary of research findings and defense gains.
-- **[Architecture Overview](ARCHITECTURE_OVERVIEW.md)**: System design, component interaction, and data flow.
-- **[Project Chronology](PROJECT_CHRONOLOGY.md)**: Timeline of development phases, critical fixes, and features.
-- **[Structured Logging Guide](LOGGING_SYSTEM.md)**: Detailed dive into the auditing architecture.
-- **[Logging Usage Guide](LOGGING_USAGE.md)**: Developer documentation for logging integration.
-- **[Experimental Walkthrough](WALKTHROUGH.md)**: Follow the step-by-step guide to replicate the observations.
-- **[Implementation Design](IMPLEMENTATION_DESIGN.md)**: Detailed look at the modular ML architecture.
-- **[Formal Threat Model](threat_model.md)**: Attacker capabilities and research constraints.
-- **[GitHub Deployment Guide](GITHUB_GUIDE.md)**: Instructions for project version control.
+Welcome to the comprehensive documentation for the **Adversarial Attack Detection in Zero-Trust Networks** project. This system implements a production-grade Zero-Trust network security architecture with ML-based intrusion detection and adversarial robustness testing.
 
 ---
 
-## Research Ethics and Usage
+## 📚 Core Documentation
 
-This framework is intended for **Academic Research** and **Defensive Security** purposes only. It demonstrates how to fortify security infrastructure against advanced ML evasion techniques.
+### Getting Started
+
+- **[Project Overview](PROJECT_OVERVIEW.md)** - Complete system description, objectives, and key features
+- **[Quick Start Guide](QUICK_START.md)** - Installation and first steps
+- **[User Guide](USER_GUIDE.md)** - Comprehensive usage instructions for all components
+
+### Technical Documentation
+
+- **[Architecture](ARCHITECTURE.md)** - Detailed system architecture and component design
+- **[API Reference](API_REFERENCE.md)** - Complete API documentation for all modules
+- **[Data Pipeline](DATA_PIPELINE.md)** - NSL-KDD dataset processing and feature engineering
+
+### Research & Methodology
+
+- **[Research Methodology](RESEARCH_METHODOLOGY.md)** - Academic context, threat model, and evaluation metrics
+- **[Threat Model](THREAT_MODEL.md)** - Attacker capabilities and defense strategies
+- **[Adversarial Attacks](ADVERSARIAL_ATTACKS.md)** - FGSM, PGD, and evasion scenarios
+
+### Operations & Deployment
+
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+- **[Dashboard Guide](../DASHBOARD_GUIDE.md)** - Streamlit dashboard usage
+- **[Logging System](LOGGING_SYSTEM.md)** - SOC telemetry and audit trails
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Common issues and solutions
 
 ---
-*Developed as part of an adversarial ML security study (2026).*
+
+## 🎯 Project Overview
+
+This project demonstrates a complete Zero-Trust network security system that:
+
+1. **Processes Real Network Traffic** - Uses NSL-KDD dataset with 41 network flow features
+2. **ML-Based Risk Scoring** - Neural network classifier for intrusion detection (78.5% accuracy)
+3. **Context-Aware Policies** - Multi-factor access control (identity, device trust, geo-risk)
+4. **Adversarial Robustness** - Tests against FGSM and PGD attacks with network constraints
+5. **SOC Integration** - Comprehensive telemetry logging for security operations
+
+---
+
+## 🏗️ System Architecture
+
+```
+Network Traffic (NSL-KDD)
+        ↓
+Feature Extraction (41 features)
+        ↓
+ML Risk Classifier (NN: 128→64→32→1)
+        ↓
+Context Enrichment (Identity, Device, Geo)
+        ↓
+Zero-Trust Policy Engine
+        ↓
+Access Decision (ALLOW/DENY/MFA/RATE_LIMIT)
+        ↓
+SOC Telemetry Logging
+```
+
+---
+
+## 🚀 Quick Links
+
+### For Users
+
+- [Installation Instructions](QUICK_START.md#installation)
+- [Running the Dashboard](../DASHBOARD_GUIDE.md)
+- [Processing Network Flows](USER_GUIDE.md#processing-flows)
+- [Testing Adversarial Attacks](USER_GUIDE.md#adversarial-testing)
+
+### For Developers
+
+- [Code Structure](API_REFERENCE.md#code-structure)
+- [Module Documentation](API_REFERENCE.md#modules)
+- [Extending the System](API_REFERENCE.md#extending)
+- [Contributing Guidelines](../CONTRIBUTING.md)
+
+### For Researchers
+
+- [Research Context](RESEARCH_METHODOLOGY.md)
+- [Evaluation Metrics](RESEARCH_METHODOLOGY.md#metrics)
+- [Experimental Results](../walkthrough.md)
+- [Citation Information](RESEARCH_METHODOLOGY.md#citation)
+
+---
+
+## 📊 Key Results
+
+- **Model Accuracy**: 78.5% on NSL-KDD test set
+- **Precision**: 97.2% (very few false positives)
+- **Adversarial Evasion**: 20% success rate (80% still blocked)
+- **Zero-Trust Effectiveness**: 73% deny rate, multi-factor protection
+
+---
+
+## 🔗 External Resources
+
+- [NSL-KDD Dataset](https://www.unb.ca/cic/datasets/nsl.html)
+- [NIST Zero-Trust Architecture](https://csrc.nist.gov/publications/detail/sp/800-207/final)
+- [Adversarial Robustness Toolbox](https://github.com/Trusted-AI/adversarial-robustness-toolbox)
+
+---
+
+## 📝 Documentation Structure
+
+```
+docs/
+├── README.md (this file)           # Documentation index
+├── PROJECT_OVERVIEW.md             # Complete system description
+├── QUICK_START.md                  # Installation and setup
+├── USER_GUIDE.md                   # End-user instructions
+├── ARCHITECTURE.md                 # Technical architecture
+├── API_REFERENCE.md                # Code documentation
+├── DATA_PIPELINE.md                # Dataset processing
+├── RESEARCH_METHODOLOGY.md         # Academic context
+├── THREAT_MODEL.md                 # Security analysis
+├── ADVERSARIAL_ATTACKS.md          # Attack documentation
+├── DEPLOYMENT_GUIDE.md             # Production setup
+├── LOGGING_SYSTEM.md               # Telemetry documentation
+└── TROUBLESHOOTING.md              # Common issues
+```
+
+---
+
+## 🆘 Getting Help
+
+- **Issues**: Check [Troubleshooting Guide](TROUBLESHOOTING.md)
+- **Questions**: Review [User Guide](USER_GUIDE.md) and [API Reference](API_REFERENCE.md)
+- **Bugs**: See [GitHub Issues](../GITHUB_GUIDE.md)
+
+---
+
+## 📄 License
+
+This project is for educational and research purposes.
+
+---
+
+*Last Updated: February 2026*
+*Project: Adversarial Attack Detection in Zero-Trust Networks*
