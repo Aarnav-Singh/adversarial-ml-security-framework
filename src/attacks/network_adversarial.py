@@ -14,10 +14,18 @@ class NetworkAdversarialAttacker:
         """
         Args:
             model: NetworkRiskClassifier
-            feature_bounds: dict with 'min' and 'max' arrays for each feature
+            feature_bounds: dict with 'min' and 'max' arrays or list of (min, max) tuples
         """
         self.model = model
-        self.bounds = feature_bounds
+        
+        # Normalize bounds to dict for np.clip
+        if isinstance(feature_bounds, list):
+            self.bounds = {
+                'min': np.array([b[0] for b in feature_bounds]),
+                'max': np.array([b[1] for b in feature_bounds])
+            }
+        else:
+            self.bounds = feature_bounds
         
         # Integer features that must be rounded (byte counts, packet counts, etc.)
         self.integer_features = [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 31, 32]
@@ -133,23 +141,24 @@ class NetworkAdversarialAttacker:
         
         return x_constrained
     
-    def evaluate_attack(self, X_clean, threshold=0.5):
+    def evaluate_attack(self, X_clean, epsilon=0.05, threshold=0.5):
         """
         Generate adversarial examples and evaluate attack success
         
         Args:
             X_clean: Clean malicious samples
+            epsilon: Perturbation magnitude
             threshold: Classification threshold
             
         Returns:
             Dictionary with attack results
         """
-        print(f"Generating adversarial examples for {len(X_clean)} samples...")
+        print(f"Generating adversarial examples (epsilon={epsilon}) for {len(X_clean)} samples...")
         
         # Generate adversarial examples
         X_adv = []
         for i, x in enumerate(X_clean):
-            x_adv = self.constrained_fgsm(x, epsilon=0.05, target_label=0)
+            x_adv = self.constrained_fgsm(x, epsilon=epsilon, target_label=0)
             X_adv.append(x_adv[0])
             
             if (i + 1) % 100 == 0:
