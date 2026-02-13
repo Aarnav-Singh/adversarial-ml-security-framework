@@ -1,4 +1,4 @@
-# Zero-Trust Network Architecture Documentation
+# Zero-Trust Network Architecture: Adversarial Attack Detection in ML-Based ZT
 
 ## System Overview
 
@@ -270,18 +270,18 @@ for i in range(num_iter):
 
 ### Defense Mechanisms
 
-**Layer 1: ML Detection**
+### Layer 1: ML Detection
 
 - High precision (97.2%)
 - Detects known attack patterns
 
-**Layer 2: Zero-Trust Context**
+### Layer 2: Zero-Trust Context
 
 - Device trust verification
 - Geo-risk assessment
 - Segment-based policies
 
-**Layer 3: Policy Enforcement**
+### Layer 3: Policy Enforcement
 
 - Multi-factor decision making
 - Defense-in-depth

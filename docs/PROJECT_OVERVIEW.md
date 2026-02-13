@@ -1,4 +1,4 @@
-# Project Overview: Adversarial Attack Detection in Zero-Trust Networks
+# Project Overview: Adversarial Attack Detection in ML-Based Zero-Trust Network
 
 ## Executive Summary
 

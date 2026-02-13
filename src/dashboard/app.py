@@ -26,7 +26,7 @@ from src.logging import (
 
 # Professional Setup
 setup_logging()
-st.set_page_config(page_title="Adversarial ML Security Framework: Analysis Console", layout="wide")
+st.set_page_config(page_title="Adversarial Attack Detection: SOC Console", layout="wide")
 
 # Custom CSS for SOC Aesthetic
 st.markdown("""
@@ -171,7 +171,7 @@ if "log_mgr" not in st.session_state:
     st.session_state.log_mgr = LogManager()
 
 # --- 4. LAYOUT ---
-st.title("🛡️ Adversarial ML Security Framework")
+st.title("🛡️ Adversarial Attack Detection in ML-Based Zero-Trust Network")
 
 # Tabs
 tab_ops, tab_red, tab_blue, tab_zt = st.tabs([

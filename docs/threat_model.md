@@ -1,4 +1,4 @@
-# Threat Model: Adversarial Attack Detection in Zero-Trust Networks
+# Threat Model: Adversarial Attack Detection in ML-Based Zero-Trust Network
 
 ## Overview
 
@@ -55,7 +55,7 @@ Maintain **confidentiality, integrity, and availability** of network resources b
 ### Knowledge Level
 
 | Level | Description | Research Context |
-|-------|-------------|------------------|
+| :--- | :--- | :--- |
 | **Black-Box** | No access to model internals | Can only query and observe decisions |
 | **Gray-Box** | Partial knowledge | Knows feature space and general architecture |
 | **White-Box** | Full knowledge | Has model weights (not realistic for production) |
@@ -65,7 +65,7 @@ Maintain **confidentiality, integrity, and availability** of network resources b
 ### Access Level
 
 | Access Type | Description | Constraints |
-|-------------|-------------|-------------|
+| :--- | :--- | :--- |
 | **Oracle Access** | Can query the system | Limited to <1000 queries |
 | **Network Access** | Can send traffic | Must maintain protocol compliance |
 | **No Direct Access** | Cannot access model files | Realistic production scenario |
@@ -86,7 +86,7 @@ Adversarial perturbations must maintain **network flow validity**:
 
 ### Attack Vector 1: ML Evasion (FGSM)
 
-**Fast Gradient Sign Method**
+### Fast Gradient Sign Method (FGSM)
 
 - **Type**: White-box gradient-based attack
 - **Mechanism**: Perturb features in direction of gradient
@@ -96,7 +96,7 @@ Adversarial perturbations must maintain **network flow validity**:
 
 **Attack Process:**
 
-```
+```text
 1. Get malicious flow x with label y=1 (attack)
 2. Compute gradient ∇_x L(x, y=0) (minimize loss for benign)
 3. Generate perturbation: δ = ε * sign(∇_x L)
@@ -110,7 +110,7 @@ Adversarial perturbations must maintain **network flow validity**:
 
 ### Defense Layer 1: ML Risk Classifier
 
-**Neural Network Intrusion Detection**
+### Neural Network Intrusion Detection
 
 - **Strength**: 97.2% precision (very few false positives)
 - **Weakness**: 64.1% recall (misses 36% of attacks)
@@ -118,7 +118,7 @@ Adversarial perturbations must maintain **network flow validity**:
 
 ### Defense Layer 2: Zero-Trust Context
 
-**Multi-Factor Verification**
+### Multi-Factor Verification
 
 - **Device Trust**: Verify device health and compliance
 - **Geo-Risk**: Assess geographic risk score
@@ -132,7 +132,7 @@ Adversarial perturbations must maintain **network flow validity**:
 ## 6. Risk Assessment Matrix
 
 | Threat Vector | Impact | Likelihood | Current Mitigation | Residual Risk |
-|---------------|--------|------------|-------------------|---------------|
+| :--- | :--- | :--- | :--- | :--- |
 | **FGSM Evasion** | High | Medium | ML + Context layers | Low |
 | **PGD Evasion** | High | Medium | ML + Context layers | Low |
 | **Context Manipulation** | Critical | Low | External verification | Medium |

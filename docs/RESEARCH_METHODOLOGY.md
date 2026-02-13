@@ -1,4 +1,4 @@
-# Research Methodology: Adversarial Attack Detection in Zero-Trust Networks
+# Research Methodology: Adversarial Attack Detection in ML-Based Zero-Trust Network
 
 ## Abstract
 
