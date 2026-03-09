@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.config import (
@@ -152,6 +154,10 @@ def main():
             alpha = eps / PGD_ALPHA_FACTOR
             X_adv_pgd = X_sample.copy().astype(float)
 
+            surrogate.eval()
+            y_tensor = torch.tensor(y_sample, dtype=torch.long)
+            criterion = nn.CrossEntropyLoss()
+
             for restart in range(PGD_RESTARTS):
                 # Random init
                 X_pgd_current = X_sample + np.random.uniform(
@@ -161,16 +167,21 @@ def main():
 
                 for step in range(PGD_ITERATIONS):
                     try:
-                        X_step = run_whitebox_attack(
-                            surrogate, rf, X_pgd_current, y_sample,
-                            clip_values, sample_size=sample_size, eps=alpha
-                        )
-                        if isinstance(X_step, tuple):
-                            X_step = X_step[0]
+                        X_pgd_tensor = torch.tensor(X_pgd_current, dtype=torch.float32, requires_grad=True)
+                        outputs = surrogate(X_pgd_tensor)
+                        loss = criterion(outputs, y_tensor)
+                        
+                        surrogate.zero_grad()
+                        loss.backward()
+                        
+                        grad = X_pgd_tensor.grad.detach().numpy()
+                        
+                        delta = X_pgd_current + alpha * np.sign(grad) - X_sample
                         # Project back to eps-ball
-                        delta = np.clip(X_step - X_sample, -eps, eps)
+                        delta = np.clip(delta, -eps, eps)
                         X_pgd_current = np.clip(X_sample + delta, feature_min, feature_max)
-                    except Exception:
+                    except Exception as e:
+                        print(f"PGD step failed: {e}")
                         break
 
                 X_adv_pgd = X_pgd_current

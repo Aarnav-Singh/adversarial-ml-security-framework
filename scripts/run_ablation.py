@@ -185,13 +185,7 @@ def main():
     np.save(demo_path, X_adv)
     print(f"Saved demo samples to: {demo_path}")
 
-    # Define ablation configurations
-    configs = [
-        ("ML Only (No ZT Context)", set()),
-        ("ML + Device Trust", {'device_trust'}),
-        ("ML + Geo-Risk", {'geo_risk'}),
-        ("Full System (All Factors)", {'device_trust', 'geo_risk', 'time_of_day', 'identity'}),
-    ]
+    configs = ZeroTrustEngine.ABLATION_CONFIGS.items()
 
     # Run ablation
     all_results = []

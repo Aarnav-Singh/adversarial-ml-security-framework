@@ -8,8 +8,11 @@
 ## Quick Start (Full Pipeline)
 
 ```bash
-# From project root:
-python scripts/run_all_experiments.sh
+# For Windows users:
+scripts\run_all_experiments.bat
+
+# For Mac/Linux users (once a .sh version is created):
+# ./scripts/run_all_experiments.sh
 ```
 
 Or run each step manually:
@@ -74,7 +77,7 @@ streamlit run src/dashboard/app.py
 ## Expected Outputs
 
 | File | Description |
-|------|-------------|
+| --- | --- |
 | `results/multiseed_results.json` | 5-seed aggregate stats with 95% CIs |
 | `results/adversarial_training.json` | Standard vs adversarial-trained model comparison |
 | `results/roc_threshold.json` | ROC-AUC and threshold sweep metrics |

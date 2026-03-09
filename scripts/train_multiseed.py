@@ -29,6 +29,7 @@ from src.config import (
     DATA_DIR, MODEL_DIR, RESULTS_DIR,
     MULTI_SEED_VALUES, ISOLATION_CONTAMINATION
 )
+from src.evaluation.statistics import multi_seed_aggregate
 
 
 def train_single_seed(X_train, y_train, X_test, y_test, seed):
@@ -83,37 +84,6 @@ def train_single_seed(X_train, y_train, X_test, y_test, seed):
     return metrics, rf, iso
 
 
-def compute_aggregate_stats(all_metrics):
-    """Compute mean, std, and 95% CI across seeds.
-
-    Args:
-        all_metrics: List of metric dicts from each seed.
-
-    Returns:
-        Dict with aggregated statistics for each metric.
-    """
-    metric_names = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
-    n = len(all_metrics)
-    agg = {}
-
-    for name in metric_names:
-        values = [m[name] for m in all_metrics]
-        mean = np.mean(values)
-        std = np.std(values, ddof=1)  # Sample std
-        ci_margin = 1.96 * std / np.sqrt(n)
-
-        agg[name] = {
-            'mean': float(mean),
-            'std': float(std),
-            'ci_95_lower': float(mean - ci_margin),
-            'ci_95_upper': float(mean + ci_margin),
-            'ci_95_margin': float(ci_margin),
-            'per_seed': values,
-            'formatted': f"{mean:.4f} ± {std:.4f} (95% CI: [{mean - ci_margin:.4f}, {mean + ci_margin:.4f}])"
-        }
-
-    return agg
-
 
 def main():
     """Run multi-seed training and evaluation pipeline."""
@@ -123,22 +93,16 @@ def main():
     print("=" * 60)
 
     # Load dataset
-    data_path = os.path.join(DATA_DIR, "combined_traffic.csv")
-    if not os.path.exists(data_path):
-        print(f"Error: Dataset not found at {data_path}")
-        sys.exit(1)
+    train_df = pd.read_csv(os.path.join(MODEL_DIR, "train_set.csv"))
+    test_df = pd.read_csv(os.path.join(MODEL_DIR, "test_set.csv"))
 
-    df = pd.read_csv(data_path)
-    X = df.drop(columns=['label']).values
-    y = df['label'].values
+    X_train = train_df.drop(columns=['label']).values
+    y_train = train_df['label'].values
+    X_test = test_df.drop(columns=['label']).values
+    y_test = test_df['label'].values
 
-    print(f"\nDataset: {X.shape[0]} samples, {X.shape[1]} features")
-    print(f"Class distribution: {np.bincount(y.astype(int))}")
-
-    # Use a fixed split seed separate from training seeds
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, random_state=42, stratify=y
-    )
+    print(f"\nTrain Dataset: {X_train.shape[0]} samples, {X_train.shape[1]} features")
+    print(f"Test Dataset: {X_test.shape[0]} samples, {X_test.shape[1]} features")
 
     # Run training across all seeds
     all_metrics = []
@@ -155,7 +119,7 @@ def main():
         joblib.dump(iso, os.path.join(seed_dir, "isolation_forest.pkl"))
 
     # Compute aggregate statistics
-    agg = compute_aggregate_stats(all_metrics)
+    agg = multi_seed_aggregate(all_metrics)
 
     # Build results payload
     results = {

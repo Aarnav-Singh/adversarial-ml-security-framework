@@ -75,7 +75,7 @@ def main():
 
     try:
         X_adv = run_whitebox_attack(
-            surrogate, rf_standard, X_adv_base, y_adv_base,
+            surrogate, X_adv_base, y_adv_base,
             clip_values, sample_size=n_adv, eps=FGM_EPS
         )
         if isinstance(X_adv, tuple):
@@ -119,7 +119,7 @@ def main():
 
     try:
         X_test_adv = run_whitebox_attack(
-            surrogate, rf_standard, X_test_sample, y_test_sample,
+            surrogate, X_test_sample, y_test_sample,
             clip_values, sample_size=test_sample_size, eps=FGM_EPS
         )
         if isinstance(X_test_adv, tuple):

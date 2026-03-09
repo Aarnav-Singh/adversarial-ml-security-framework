@@ -816,7 +816,7 @@ with tab_demo:
 
             try:
                 X_perturbed = run_whitebox_attack(
-                    surr_demo, rf_demo_model, X_demo, y_demo,
+                    surr_demo, X_demo, y_demo,
                     clip_vals, sample_size=len(X_demo), eps=fgsm_eps
                 )
                 if isinstance(X_perturbed, tuple):

@@ -212,7 +212,9 @@ def calculate_statistical_significance(
             "n_samples": len(baseline),
             "mean_baseline": float(np.mean(baseline)),
             "mean_defended": float(np.mean(defended)),
-            "mean_difference": float(mean_diff)
+            "mean_difference": float(mean_diff),
+            "degrees_of_freedom": len(baseline) - 1,
+            "null_hypothesis": "Zero-Trust policies do not improve adversarial robustness over ML-only baseline"
         }
         
         return result
@@ -376,3 +378,40 @@ def generate_statistical_report(
     })
     
     return report
+
+
+def format_ci(mean: float, std: float, n: int, confidence: float = 0.95) -> str:
+    """Format a standard mean +/- std and 95% CI string."""
+    from scipy import stats
+    import numpy as np
+    ci_margin = stats.t.ppf((1 + confidence) / 2, df=n - 1) * (std / np.sqrt(n))
+    return f"{mean:.4f} ± {std:.4f} (95% CI: [{mean - ci_margin:.4f}, {mean + ci_margin:.4f}])"
+
+
+def multi_seed_aggregate(all_metrics: List[Dict[str, float]]) -> Dict[str, Dict]:
+    """Compute mean, std, and 95% CI across seeds."""
+    from scipy import stats
+    import numpy as np
+    metric_names = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+    n = len(all_metrics)
+    agg = {}
+
+    for name in metric_names:
+        values = [m[name] for m in all_metrics if name in m]
+        if not values:
+            continue
+        mean = np.mean(values)
+        std = np.std(values, ddof=1)  # Sample std
+        ci_margin = stats.t.ppf((1 + 0.95) / 2, df=n - 1) * std / np.sqrt(n)
+
+        agg[name] = {
+            'mean': float(mean),
+            'std': float(std),
+            'ci_95_lower': float(mean - ci_margin),
+            'ci_95_upper': float(mean + ci_margin),
+            'ci_95_margin': float(ci_margin),
+            'per_seed': values,
+            'formatted': f"{mean:.4f} ± {std:.4f} (95% CI: [{mean - ci_margin:.4f}, {mean + ci_margin:.4f}])"
+        }
+
+    return agg
