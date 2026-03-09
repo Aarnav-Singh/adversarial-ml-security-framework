@@ -209,21 +209,6 @@ Full pinned dependency list is in `requirements.txt`.
 
 ---
 
-## Citation
-
-```bibtex
-@misc{zerotrust_adversarial_ids_2026,
-  title   = {Zero-Trust Context-Aware Defense Against Adversarial Evasion Attacks
-             on ML-Based Network Intrusion Detection Systems},
-  author  = {[Your Name]},
-  year    = {2026},
-  school  = {SRM Institute of Science and Technology},
-  note    = {Final Year B.Tech Research Project, Department of CSE}
-}
-```
-
----
-
 ## License
 
 Released under the [MIT License](LICENSE) for educational and research purposes. Adversarial attack implementations are included solely to evaluate and demonstrate defensive mechanisms — not for offensive use.
