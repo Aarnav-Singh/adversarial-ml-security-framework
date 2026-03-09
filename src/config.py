@@ -23,15 +23,25 @@ PROJECT_ROOT = BASE_DIR.parent
 MODEL_DIR = os.getenv('MODEL_DIR', str(PROJECT_ROOT / "models"))
 DATA_DIR = os.getenv('DATA_DIR', str(PROJECT_ROOT / "data"))
 RESULTS_DIR = os.getenv('RESULTS_DIR', str(PROJECT_ROOT / "results"))
+SCRIPTS_DIR = os.getenv('SCRIPTS_DIR', str(PROJECT_ROOT / "scripts"))
+FIGURES_DIR = os.getenv('FIGURES_DIR', str(PROJECT_ROOT / "figures"))
+CICIDS_DIR = os.getenv('CICIDS_DIR', str(PROJECT_ROOT / "data" / "cicids2017"))
+
+# Demo sample file for reproducible Research Demo tab
+DEMO_SAMPLES_PATH = os.getenv('DEMO_SAMPLES_PATH', str(PROJECT_ROOT / "data" / "demo_samples.npy"))
 
 # Create directories if they don't exist (safe initialization)
-for directory in [MODEL_DIR, DATA_DIR, RESULTS_DIR]:
+for directory in [MODEL_DIR, DATA_DIR, RESULTS_DIR, SCRIPTS_DIR, FIGURES_DIR]:
     Path(directory).mkdir(parents=True, exist_ok=True)
 
 # ==================== 2. GLOBAL SETTINGS ====================
 
 # Random seed for reproducibility
 RANDOM_SEED = int(os.getenv('RANDOM_SEED', '42'))
+
+# Multi-seed values for statistically rigorous evaluation
+# Every metric must be reported as mean ± std across these 5 seeds
+MULTI_SEED_VALUES: List[int] = [0, 42, 123, 456, 789]
 
 # Debug mode (set to False in production)
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'False').lower() in ('true', '1', 'yes')
@@ -49,9 +59,9 @@ PRODUCTION_ACCURACY_THRESHOLD = float(os.getenv('PRODUCTION_ACCURACY_THRESHOLD',
 
 # ==================== 4. ATTACK CONFIGURATIONS ====================
 
-# Epsilon values for robustness curve sweeps
-# These define the perturbation magnitudes to test
-EPS_VALUES: List[float] = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+# Epsilon values for robustness curve sweeps (research publication range)
+# Focused on realistic threat region where adversarial examples remain valid
+EPS_VALUES: List[float] = [0.01, 0.02, 0.05, 0.10, 0.20]
 
 # HopSkipJump (Black-box) attack parameters
 HSJ_MAX_ITER = int(os.getenv('HSJ_MAX_ITER', '50'))
@@ -61,8 +71,18 @@ HSJ_INIT_EVAL = int(os.getenv('HSJ_INIT_EVAL', '10'))
 # Fast Gradient Method (White-box) attack parameters
 FGM_EPS = float(os.getenv('FGM_EPS', '0.2'))
 
+# PGD (Projected Gradient Descent) attack parameters — formally documented
+# for paper methodology section reproducibility
+PGD_ITERATIONS = int(os.getenv('PGD_ITERATIONS', '40'))
+PGD_ALPHA_FACTOR = int(os.getenv('PGD_ALPHA_FACTOR', '10'))  # alpha = eps / PGD_ALPHA_FACTOR
+PGD_RESTARTS = int(os.getenv('PGD_RESTARTS', '1'))
+
 # Default sample sizes for attacks
 DEFAULT_ATTACK_SAMPLE_SIZE = int(os.getenv('ATTACK_SAMPLE_SIZE', '100'))
+
+# Demo samples for Research Demo tab (30 high-confidence malicious samples)
+DEMO_SAMPLE_COUNT = 30
+DEMO_MIN_RISK_SCORE = 0.7
 
 # ==================== 5. TRAINING CONFIGURATIONS ====================
 

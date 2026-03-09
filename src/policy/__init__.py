@@ -1,11 +1,8 @@
-"""Policy module for Zero-Trust access control"""
+"""
+Zero-Trust policy engine package.
 
-from .network_context import NetworkRequestContext, NetworkContextBuilder
-from .zero_trust_engine import ZeroTrustPolicyEngine, AccessDecision
+Provides contextual access control decisions that complement ML-based
+threat detection, implementing defense-in-depth against adversarial evasion.
+"""
 
-__all__ = [
-    'NetworkRequestContext',
-    'NetworkContextBuilder', 
-    'ZeroTrustPolicyEngine',
-    'AccessDecision'
-]
+from src.policy.zero_trust_engine import ZeroTrustEngine, evaluate_access
