@@ -1,8 +1,7 @@
 """
-White-box transfer attack module using Fast Gradient Method (FGM).
+White-box transfer attack implementation using Fast Gradient Method (FGM).
 
-This module implements gradient-based attacks using a surrogate model
-to generate transferable adversarial examples that can fool the target model.
+Uses a surrogate model to generate transferable adversarial examples that can fool the target model.
 """
 
 import numpy as np
@@ -57,10 +56,10 @@ def validate_whitebox_inputs(
     if np.any(clip_values[0] >= clip_values[1]):
         raise ValueError(f"clip_values[0] must be < clip_values[1], got {clip_values}")
     
-    if eps < 0:
+    if np.any(np.array(eps) < 0):
         raise ValueError(f"eps must be non-negative, got {eps}")
     
-    if np.any(eps > (clip_values[1] - clip_values[0])):
+    if np.any(np.array(eps) > (clip_values[1] - clip_values[0])):
         logger.warning(
             f"eps ({eps}) is larger than clip range for some features. "
             "This may lead to heavily clipped perturbations."
@@ -177,8 +176,13 @@ def run_whitebox_attack(
         )
         
         # Sample selection with controlled randomness
-        rng = np.random.RandomState(random_state)
-        indices = rng.permutation(len(X_test))[:sample_size]
+        if sample_size >= len(X_test):
+            indices = np.arange(len(X_test))
+            sample_size = len(X_test)
+        else:
+            rng = np.random.RandomState(random_state)
+            indices = rng.permutation(len(X_test))[:sample_size]
+        
         X_sample = X_test[indices].copy()  # Explicit copy to avoid view issues
         y_sample = y_test[indices].copy()
         
@@ -188,6 +192,7 @@ def run_whitebox_attack(
         attack = FastGradientMethod(
             estimator=classifier,
             eps=eps,
+            eps_step=eps,
             norm=norm,
             minimal=minimal,
             batch_size=batch_size
