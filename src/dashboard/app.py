@@ -121,17 +121,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 2. BACKEND LOGIC ---
-@st.cache_resource
-def load_models(model_name="random_forest.pkl"):
-    try:
-        iso_forest = joblib.load(os.path.join(config.MODEL_DIR, "isolation_forest.pkl"))
-        rf = joblib.load(os.path.join(config.MODEL_DIR, model_name))
-        return iso_forest, rf
-    except FileNotFoundError:
-        return None, None
+from src.preprocessing.unsw_nb15 import UNSWNB15Loader
+from src.preprocessing.cicids_2017 import CICIDS2017Loader
+from src.risk_engine.network_classifier import NetworkRiskClassifier
 
-# Load initial baseline for global use
-iso_forest, rf = load_models()
+@st.cache_resource
+def load_assets(dataset_name="UNSW-NB15"):
+    try:
+        if dataset_name == "UNSW-NB15":
+            loader = UNSWNB15Loader()
+            input_dim = 42
+        else:
+            loader = CICIDS2017Loader()
+            input_dim = 78
+            
+        model = NetworkRiskClassifier(input_dim=input_dim)
+        # Load pre-trained if exists, else it stays initialized
+        model_path = os.path.join(config.MODEL_DIR, f"{dataset_name.lower()}_model.pth")
+        if os.path.exists(model_path):
+            model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        
+        return model, loader
+    except Exception as e:
+        st.error(f"Error loading assets for {dataset_name}: {e}")
+        return None, None
 
 def generate_single_sample(is_attack=False, mean_trust=80):
     if not is_attack:
