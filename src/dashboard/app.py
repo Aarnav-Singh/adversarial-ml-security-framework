@@ -755,7 +755,8 @@ with tab_demo:
     st.markdown(
         "**End-to-end proof of the central research claim**: "
         "ML detection -> Adversarial evasion -> Zero-Trust recovery. "
-        "This demo runs automatically with deterministic, reproducible results."
+        "This demo uses the **UNSW-NB15** and **CICIDS-2017** multi-dataset framework "
+        "with deterministic, reproducible results."
     )
 
     if st.button("Run Full Research Demo", type="primary"):
@@ -774,28 +775,26 @@ with tab_demo:
             from src.attacks.network_adversarial import NetworkAdversarialAttacker
 
             # Load neural net
-            nn_demo = NetworkRiskClassifier(input_dim=41)
+            nn_demo = NetworkRiskClassifier(input_dim=42)
             nn_demo.load_state_dict(torch.load(
                 os.path.join(config.MODEL_DIR, "network_risk_classifier.pth"),
                 map_location='cpu', weights_only=True
             ))
             nn_demo.eval()
 
-            # Load demo samples (41-feature NSL-KDD data from run_ablation.py)
+            # Load demo samples (42-feature UNSW-NB15 data)
             demo_path = os.path.join(config.DATA_DIR, "demo_samples.npy")
             if os.path.exists(demo_path):
                 X_demo = np.load(demo_path)
             else:
-                # Generate on-the-fly from NSL-KDD
-                from src.data.network_loader import NetworkDataLoader
-                loader = NetworkDataLoader()
-                loader.load_preprocessors(config.MODEL_DIR)
-                test_path = os.path.join(config.DATA_DIR, 'KDDTest+.txt')
-                X_test_kdd, y_test_kdd, _ = loader.load_and_preprocess(test_path, is_train=False)
-                attack_mask = y_test_kdd == 1
+                # Generate on-the-fly from UNSW-NB15
+                from src.preprocessing.unsw_nb15 import UNSWNB15Loader
+                unsw_loader = UNSWNB15Loader()
+                _, X_test_unsw, _, y_test_unsw, _ = unsw_loader.load_and_preprocess()
+                attack_mask = y_test_unsw == 1
                 rng = np.random.default_rng(42)
                 indices = rng.choice(attack_mask.sum(), min(config.DEMO_SAMPLE_COUNT, attack_mask.sum()), replace=False)
-                X_demo = X_test_kdd[attack_mask][indices]
+                X_demo = X_test_unsw[attack_mask][indices]
                 np.save(demo_path, X_demo)
 
             # Score with neural net
@@ -804,7 +803,7 @@ with tab_demo:
 
             st.markdown("### Stage 1: Baseline Detection")
             st.markdown(
-                f"Loaded **{len(X_demo)}** malicious network flows (NSL-KDD). "
+                f"Loaded **{len(X_demo)}** malicious network flows from the UNSW-NB15 dataset. "
                 f"The neural net risk classifier scores them as potential threats."
             )
 
@@ -831,10 +830,10 @@ with tab_demo:
             fgsm_eps = 0.05
 
             # Compute feature bounds from demo data
-            from src.data.network_loader import NetworkDataLoader
-            loader = NetworkDataLoader()
-            loader.load_preprocessors(config.MODEL_DIR)
-            feature_bounds = loader.get_feature_bounds(X_demo)
+            feature_bounds = {
+                'min': X_demo.min(axis=0),
+                'max': X_demo.max(axis=0)
+            }
 
             attacker = NetworkAdversarialAttacker(nn_demo, feature_bounds)
 

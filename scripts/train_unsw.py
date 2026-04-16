@@ -1,6 +1,6 @@
 """
-Train Baseline Network Risk Classifier
-Trains intrusion detection model on NSL-KDD dataset
+Train Network Risk Classifier on UNSW-NB15 Dataset
+Updated baseline training for the current dataset
 """
 
 import torch
@@ -8,37 +8,39 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import sys
 import os
+import numpy as np
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from src.preprocessing.nsl_kdd import NetworkDataLoader
+from src.preprocessing.unsw_nb15 import UNSWNB15Loader
 from src.risk_engine.network_classifier import NetworkRiskClassifier
 
 
 def train_network_classifier():
-    """Train network intrusion detection classifier"""
+    """Train network intrusion detection classifier on UNSW-NB15"""
     
     print("="*60)
-    print("Training Network Risk Classifier on NSL-KDD Dataset")
+    print("Training Network Risk Classifier on UNSW-NB15 Dataset")
     print("="*60)
     
     # Load data
-    loader = NetworkDataLoader()
+    data_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'unsw-nb15')
+    loader = UNSWNB15Loader(data_dir=data_dir)
     
-    data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
-    train_path = os.path.join(data_dir, 'KDDTrain+.txt')
-    test_path = os.path.join(data_dir, 'KDDTest+.txt')
+    print("\n[1/4] Loading and preprocessing UNSW-NB15 data...")
+    X_train, X_test, y_train, y_test, input_dim = loader.load_and_preprocess()
     
-    print("\n[1/5] Loading training data...")
-    X_train, y_train, _ = loader.load_and_preprocess(train_path, is_train=True)
+    print(f"  Input features: {input_dim}")
+    print(f"  Training samples: {len(X_train)}")
+    print(f"  Test samples: {len(X_test)}")
+    print(f"  Train class dist: Normal={sum(y_train==0)}, Attack={sum(y_train==1)}")
+    print(f"  Test class dist: Normal={sum(y_test==0)}, Attack={sum(y_test==1)}")
     
-    print("\n[2/5] Loading test data...")
-    X_test, y_test, _ = loader.load_and_preprocess(test_path, is_train=False)
-    
-    # Save preprocessors
+    # Save the scaler
     models_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
-    loader.save_preprocessors(models_dir)
+    os.makedirs(models_dir, exist_ok=True)
+    loader.save_scaler(os.path.join(models_dir, 'unsw_scaler.pkl'))
     
     # Convert to PyTorch tensors
     X_train_t = torch.FloatTensor(X_train)
@@ -50,22 +52,20 @@ def train_network_classifier():
     train_dataset = TensorDataset(X_train_t, y_train_t)
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
     
-    print(f"\n[3/5] Initializing model...")
-    print(f"Input features: {X_train.shape[1]}")
-    print(f"Training samples: {len(X_train)}")
-    print(f"Test samples: {len(X_test)}")
+    print(f"\n[2/4] Initializing model (input_dim={input_dim})...")
     
     # Initialize model
-    model = NetworkRiskClassifier(input_dim=X_train.shape[1])
+    model = NetworkRiskClassifier(input_dim=input_dim)
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
     # Training loop
-    print(f"\n[4/5] Training for 20 epochs...")
+    epochs = 25
+    print(f"\n[3/4] Training for {epochs} epochs...")
     print("-"*60)
     
-    epochs = 20
     best_accuracy = 0.0
+    model_path = os.path.join(models_dir, 'network_risk_classifier.pth')
     
     for epoch in range(epochs):
         model.train()
@@ -86,7 +86,7 @@ def train_network_classifier():
             test_preds = (test_outputs > 0.5).float()
             accuracy = (test_preds == y_test_t).float().mean()
             
-            # Calculate precision and recall for attack class
+            # Precision, recall, F1 for attack class
             true_positives = ((test_preds == 1) & (y_test_t == 1)).sum().float()
             false_positives = ((test_preds == 1) & (y_test_t == 0)).sum().float()
             false_negatives = ((test_preds == 0) & (y_test_t == 1)).sum().float()
@@ -104,11 +104,22 @@ def train_network_classifier():
         # Save best model
         if accuracy > best_accuracy:
             best_accuracy = accuracy
-            model_path = os.path.join(models_dir, 'network_risk_classifier.pth')
             torch.save(model.state_dict(), model_path)
     
+    # Also save demo samples from UNSW-NB15 test data
+    print("\n[4/4] Generating demo samples...")
+    attack_mask = y_test == 1
+    rng = np.random.default_rng(42)
+    n_demo = min(50, int(attack_mask.sum()))
+    indices = rng.choice(int(attack_mask.sum()), n_demo, replace=False)
+    X_demo = X_test[attack_mask][indices]
+    
+    demo_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'demo_samples.npy')
+    np.save(demo_path, X_demo)
+    print(f"  Saved {n_demo} demo samples to {demo_path}")
+    
     print("-"*60)
-    print(f"\n[5/5] Training complete!")
+    print(f"\nTraining complete!")
     print(f"Best test accuracy: {best_accuracy:.4f}")
     print(f"Model saved to: {model_path}")
     print("="*60)
