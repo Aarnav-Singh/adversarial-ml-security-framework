@@ -1,7 +1,9 @@
 import unittest
 import numpy as np
-import torch
-import torch.nn as nn
+import pytest
+
+torch = pytest.importorskip("torch", reason="torch not installed — skipping network adversarial tests")
+nn = torch.nn
 from src.attacks.network_adversarial import NetworkAdversarialAttacker
 
 

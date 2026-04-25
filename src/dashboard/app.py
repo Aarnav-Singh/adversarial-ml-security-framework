@@ -8,6 +8,10 @@ import time
 import os
 import sys
 import json
+try:
+    import torch
+except ImportError:
+    torch = None
 
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -138,8 +142,8 @@ def load_assets(dataset_name="UNSW-NB15"):
         model = NetworkRiskClassifier(input_dim=input_dim)
         # Load pre-trained if exists, else it stays initialized
         model_path = os.path.join(config.MODEL_DIR, f"{dataset_name.lower()}_model.pth")
-        if os.path.exists(model_path):
-            model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        if os.path.exists(model_path) and torch is not None:
+            model.load_state_dict(torch.load(model_path, map_location='cpu', weights_only=True))
         
         return model, loader
     except Exception as e:
@@ -271,7 +275,7 @@ with tab_ops:
                 reason = "SYSTEM LOCKDOWN"
                 confidence = 1.0
                 st.session_state.incident_count += 1
-            elif rf and iso_forest:
+            elif False:  # placeholder: RF/IsoForest models not loaded in SOC live feed
                 # Basic Random Forest Check
                 prob = rf.predict_proba(df_sample)[0][1]
                 if prob > ai_threshold:
