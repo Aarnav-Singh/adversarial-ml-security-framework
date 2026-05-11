@@ -275,20 +275,12 @@ with tab_ops:
                 reason = "SYSTEM LOCKDOWN"
                 confidence = 1.0
                 st.session_state.incident_count += 1
-            elif False:  # placeholder: RF/IsoForest models not loaded in SOC live feed
-                # Basic Random Forest Check
-                prob = rf.predict_proba(df_sample)[0][1]
-                if prob > ai_threshold:
-                    decision = "DENY"
-                    reason = f"AI Attack Signature ({mode})" if mode != "Standard" else "AI Attack Signature"
-                    confidence = prob
-                    st.session_state.incident_count += 1
-                
-                # Basic Trust Score Check
-                elif sample['trust_score'] < effective_policy:
-                    decision = "DENY"
-                    reason = f"Trust < Policy ({effective_policy})"
-                    confidence = 1.0
+            elif sample['trust_score'] < effective_policy:
+                decision = "DENY"
+                reason = f"Trust < Policy ({effective_policy})"
+                confidence = 1.0
+                st.session_state.incident_count += 1
+
             
             # Update History
             new_row = {
@@ -779,26 +771,32 @@ with tab_demo:
             from src.attacks.network_adversarial import NetworkAdversarialAttacker
 
             # Load neural net
-            nn_demo = NetworkRiskClassifier(input_dim=42)
+            nn_demo = NetworkRiskClassifier(input_dim=16)
             nn_demo.load_state_dict(torch.load(
                 os.path.join(config.MODEL_DIR, "network_risk_classifier.pth"),
                 map_location='cpu', weights_only=True
             ))
             nn_demo.eval()
 
-            # Load demo samples (42-feature UNSW-NB15 data)
+            # Load demo samples (16-feature CICIDS-2017 data)
             demo_path = os.path.join(config.DATA_DIR, "demo_samples.npy")
             if os.path.exists(demo_path):
                 X_demo = np.load(demo_path)
+                if X_demo.shape[1] != 16:
+                    # Regenerate if the existing file has wrong dimensions (e.g. old 42-feature data)
+                    os.remove(demo_path)
+                    X_demo = None
             else:
-                # Generate on-the-fly from UNSW-NB15
-                from src.preprocessing.unsw_nb15 import UNSWNB15Loader
-                unsw_loader = UNSWNB15Loader()
-                _, X_test_unsw, _, y_test_unsw, _ = unsw_loader.load_and_preprocess()
-                attack_mask = y_test_unsw == 1
+                X_demo = None
+
+            if X_demo is None:
+                # Generate on-the-fly from CICIDS-2017
+                from src.data.cicids_loader import load_cicids2017
+                _, X_test_cicids, _, y_test_cicids = load_cicids2017(config.CICIDS_DIR)
+                attack_mask = y_test_cicids == 1
                 rng = np.random.default_rng(42)
                 indices = rng.choice(attack_mask.sum(), min(config.DEMO_SAMPLE_COUNT, attack_mask.sum()), replace=False)
-                X_demo = X_test_unsw[attack_mask][indices]
+                X_demo = X_test_cicids[attack_mask][indices]
                 np.save(demo_path, X_demo)
 
             # Score with neural net

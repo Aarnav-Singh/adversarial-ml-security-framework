@@ -188,11 +188,19 @@ def run_whitebox_attack(
         
         logger.debug(f"Selected {len(X_sample)} samples for attack")
         
+        # Calculate feature ranges for proportional perturbation
+        feature_ranges = clip_values[1] - clip_values[0]
+        # Prevent zero division/multiplication for constant features
+        feature_ranges = np.maximum(feature_ranges, 1e-6)
+        
+        # Scale epsilon relative to feature range
+        eps_array = eps * feature_ranges
+        
         # Initialize FGM attack
         attack = FastGradientMethod(
             estimator=classifier,
-            eps=eps,
-            eps_step=eps,
+            eps=eps_array,
+            eps_step=eps_array,
             norm=norm,
             minimal=minimal,
             batch_size=batch_size

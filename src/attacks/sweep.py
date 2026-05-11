@@ -210,8 +210,13 @@ def run_epsilon_sweep(
         # Perform sweep
         for idx, eps in enumerate(eps_values):
             try:
+                # Calculate feature ranges for proportional perturbation
+                feature_ranges = clip_values[1] - clip_values[0]
+                feature_ranges = np.maximum(feature_ranges, 1e-6)
+                eps_array = eps * feature_ranges
+                
                 # Generate adversarial examples
-                attack = FastGradientMethod(estimator=classifier, eps=eps)
+                attack = FastGradientMethod(estimator=classifier, eps=eps_array, eps_step=eps_array)
                 X_adv = attack.generate(x=X_sample)
                 
                 # Validate adversarial examples
