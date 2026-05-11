@@ -1,10 +1,12 @@
 {
+  "include": ["."],
   "executionEnvironments": [
     {
       "root": ".",
       "extraPaths": ["."]
     }
   ],
+  "pythonPath": ".",
   "reportMissingImports": "warning",
   "reportMissingModuleSource": "none",
   "pythonVersion": "3.14",

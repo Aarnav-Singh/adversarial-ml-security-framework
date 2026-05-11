@@ -25,7 +25,7 @@ DATA_DIR = os.getenv('DATA_DIR', str(PROJECT_ROOT / "data"))
 RESULTS_DIR = os.getenv('RESULTS_DIR', str(PROJECT_ROOT / "results"))
 SCRIPTS_DIR = os.getenv('SCRIPTS_DIR', str(PROJECT_ROOT / "scripts"))
 FIGURES_DIR = os.getenv('FIGURES_DIR', str(PROJECT_ROOT / "figures"))
-CICIDS_DIR = os.getenv('CICIDS_DIR', str(PROJECT_ROOT / "data" / "cicids2017"))
+CICIDS_DIR = os.getenv('CICIDS_DIR', str(PROJECT_ROOT / "data" / "cicids-2017"))
 
 # Demo sample file for reproducible Research Demo tab
 DEMO_SAMPLES_PATH = os.getenv('DEMO_SAMPLES_PATH', str(PROJECT_ROOT / "data" / "demo_samples.npy"))

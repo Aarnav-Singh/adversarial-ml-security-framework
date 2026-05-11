@@ -167,46 +167,54 @@ class NetworkAdversarialAttacker:
     
     def evaluate_attack(self, X_clean, epsilon=0.05, threshold=0.5):
         """
-        Generate adversarial examples and evaluate attack success with advanced metrics
+        Generate adversarial examples and evaluate attack success.
+        Uses a single batched forward/backward pass (O(1) instead of O(n)).
         """
         print(f"Generating adversarial examples (epsilon={epsilon}) for {len(X_clean)} samples...")
-        
-        # Generate adversarial examples
-        X_adv = []
-        for i, x in enumerate(X_clean):
-            x_adv = self.constrained_fgsm(x, epsilon=epsilon, target_label=0)
-            X_adv.append(x_adv[0])
-        
-        X_adv = np.array(X_adv)
-        
-        # Evaluate
+
+        # --- Batched FGSM (single forward+backward pass) ---
+        if len(X_clean.shape) == 1:
+            X_clean = X_clean.reshape(1, -1)
+
+        x_tensor = torch.FloatTensor(X_clean).requires_grad_(True)
+        self.model.eval()
+        output = self.model(x_tensor)
+        # Target: benign (0) — attacker wants to evade detection
+        target = torch.zeros_like(output)
+        loss = torch.nn.BCELoss()(output, target)
+        self.model.zero_grad()
+        loss.backward()
+
+        gradients = x_tensor.grad.data.clone()
+        # Mask categorical features
+        for idx in self.categorical_indices:
+            if idx < gradients.shape[1]:
+                gradients[:, idx] = 0
+
+        x_adv_tensor = x_tensor.detach() - epsilon * gradients.sign()
+        X_adv = self._apply_network_constraints(x_adv_tensor.numpy())
+
+        # Evaluate (both in one batched inference)
         with torch.no_grad():
             clean_scores = self.model(torch.FloatTensor(X_clean)).numpy().flatten()
-            adv_scores = self.model(torch.FloatTensor(X_adv)).numpy().flatten()
-        
-        # Binary predictions based on threshold
+            adv_scores   = self.model(torch.FloatTensor(X_adv)).numpy().flatten()
+
         y_clean_pred = (clean_scores > threshold).astype(int)
-        y_adv_pred = (adv_scores > threshold).astype(int)
-        
-        # We assume X_clean were all malicious (label 1)
+        y_adv_pred   = (adv_scores   > threshold).astype(int)
         y_true = np.ones(len(X_clean))
-        
-        # Use advanced metrics
-        # Note: evaluate_network_performance expects y_true for the specific set
-        # For adversarial evaluation, we want to see how detection drops
+
         clean_metrics = evaluate_network_performance(y_true, y_clean_pred, clean_scores)
-        adv_metrics = evaluate_network_performance(y_true, y_adv_pred, adv_scores)
-        
-        results = {
-            'attack_success_rate': 1.0 - adv_metrics['recall'], # Inverted recall on malicious samples
+        adv_metrics   = evaluate_network_performance(y_true, y_adv_pred,   adv_scores)
+
+        return {
+            'attack_success_rate':  1.0 - adv_metrics['recall'],
             'clean_detection_rate': clean_metrics['recall'],
-            'adv_detection_rate': adv_metrics['recall'],
-            'avg_risk_reduction': float((clean_scores - adv_scores).mean()),
-            'clean_metrics': clean_metrics,
-            'adv_metrics': adv_metrics,
-            'X_adversarial': X_adv,
-            'clean_scores': clean_scores,
-            'adv_scores': adv_scores
+            'adv_detection_rate':   adv_metrics['recall'],
+            'avg_risk_reduction':   float((clean_scores - adv_scores).mean()),
+            'clean_metrics':        clean_metrics,
+            'adv_metrics':          adv_metrics,
+            'X_adversarial':        X_adv,
+            'clean_scores':         clean_scores,
+            'adv_scores':           adv_scores,
         }
-        
-        return results
+

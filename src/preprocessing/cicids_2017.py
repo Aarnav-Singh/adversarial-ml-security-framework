@@ -4,9 +4,15 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import SMOTE
 import logging
 from .base import NetworkBaseLoader, fix_seeds
+
+try:
+    from imblearn.over_sampling import SMOTE
+    _SMOTE_AVAILABLE = True
+except ImportError:
+    _SMOTE_AVAILABLE = False
+    logging.getLogger(__name__).warning("imbalanced-learn not installed — SMOTE disabled")
 
 logger = logging.getLogger(__name__)
 
@@ -55,14 +61,13 @@ class CICIDS2017Loader(NetworkBaseLoader):
         
         # 5. Handle infinite and NaN
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        
-        # 6. Median imputation
-        for col in df.columns:
-            if df[col].dtype != 'object' and df[col].isnull().any():
-                df[col] = df[col].fillna(df[col].median())
-                
-        # 7. Drop zero-variance columns
-        zero_var_cols = [col for col in df.columns if df[col].nunique() <= 1]
+
+        # 6. Vectorized median imputation (single pass, much faster than per-col loop)
+        num_cols = df.select_dtypes(include='number').columns
+        df[num_cols] = df[num_cols].fillna(df[num_cols].median())
+
+        # 7. Drop zero-variance columns (vectorized nunique)
+        zero_var_cols = df.columns[df.nunique() <= 1].tolist()
         logger.info(f"Dropping {len(zero_var_cols)} zero-variance columns: {zero_var_cols}")
         df = df.drop(columns=zero_var_cols)
         
@@ -79,10 +84,14 @@ class CICIDS2017Loader(NetworkBaseLoader):
         X_train = self.scaler.fit_transform(X_train)
         X_test = self.scaler.transform(X_test)
         
-        # 9. SMOTE on training data only
+        # 9. SMOTE on training data only (if available)
         logger.info(f"Class distribution before SMOTE: {np.bincount(y_train)}")
-        sm = SMOTE(random_state=42)
-        X_train_res, y_train_res = sm.fit_resample(X_train, y_train)
-        logger.info(f"Class distribution after SMOTE: {np.bincount(y_train_res)}")
-        
+        if _SMOTE_AVAILABLE:
+            sm = SMOTE(random_state=42)
+            X_train_res, y_train_res = sm.fit_resample(X_train, y_train)
+            logger.info(f"Class distribution after SMOTE: {np.bincount(y_train_res)}")
+        else:
+            X_train_res, y_train_res = X_train, y_train
+            logger.warning("SMOTE skipped — install imbalanced-learn for oversampling")
+
         return X_train_res, X_test, y_train_res, y_test, X_train.shape[1]
