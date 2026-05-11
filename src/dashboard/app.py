@@ -608,7 +608,7 @@ with tab_blue:
                     curve_data = []
                     rf_fortified = joblib.load(os.path.join(config.MODEL_DIR, "fortified_random_forest.pkl"))
                     for noise in noise_levels:
-                        X_noise = X_test + np.random.normal(0, noise, X_test.shape)
+                        X_noise = X_test + np.random.normal(0, noise * np.std(X_test, axis=0), X_test.shape)
                         curve_data.append({"Noise Intensity": noise, "Accuracy": np.mean(rf_baseline.predict(X_noise) == y_test), "Model": "Baseline"})
                         curve_data.append({"Noise Intensity": noise, "Accuracy": np.mean(rf_fortified.predict(X_noise) == y_test), "Model": "Fortified"})
                     
@@ -623,7 +623,7 @@ with tab_blue:
 
         if st.button("📉 Dual Distribution Drift Test"):
             with st.spinner("Injecting Noise... Testing both stages..."):
-                X_drift = X_test + np.random.normal(0, 0.5, X_test.shape)
+                X_drift = X_test + np.random.normal(0, 0.5 * np.std(X_test, axis=0), X_test.shape)
                 y_pred_base = rf_baseline.predict(X_drift)
                 acc_base = np.mean(y_pred_base == y_test)
                 
@@ -666,7 +666,7 @@ with tab_blue:
                     fort_clean = np.mean(rf_fortified.predict(X_test) == y_test)
                     
                     # Heavy Drift (Noise = 0.6)
-                    X_heavy_drift = X_test + np.random.normal(0, 0.6, X_test.shape)
+                    X_heavy_drift = X_test + np.random.normal(0, 0.6 * np.std(X_test, axis=0), X_test.shape)
                     base_drift = np.mean(rf_baseline.predict(X_heavy_drift) == y_test)
                     fort_drift = np.mean(rf_fortified.predict(X_heavy_drift) == y_test)
                     

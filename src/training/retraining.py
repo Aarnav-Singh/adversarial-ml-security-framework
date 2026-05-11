@@ -46,10 +46,14 @@ def fortify_model():
     attack = FastGradientMethod(estimator=classifier, eps=FGM_EPS)
     X_adv = attack.generate(x=X_train[:aug_size])
     y_adv = y_train[:aug_size] 
+    
+    # Generate Gaussian noise examples for drift resilience
+    X_noise = X_train[:aug_size] + np.random.normal(0, 0.8 * np.std(X_train, axis=0), X_train[:aug_size].shape)
+    y_noise = y_train[:aug_size]
 
     print("--- Phase 3: Merging & Retraining Fortified Random Forest ---")
-    X_fortified = np.vstack([X_train, X_adv])
-    y_fortified = np.hstack([y_train, y_adv])
+    X_fortified = np.vstack([X_train, X_adv, X_noise])
+    y_fortified = np.hstack([y_train, y_adv, y_noise])
     
     fortified_rf = RandomForestClassifier(n_estimators=100, random_state=42)
     fortified_rf.fit(X_fortified, y_fortified)
